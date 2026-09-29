@@ -59,4 +59,43 @@ function Import-LabAdModule {
     }
 }
 
-Export-ModuleMember -Function Get-LabDomainName, Assert-LabDomain, Write-LabChange, Import-LabAdModule
+function Set-LabGpoRegistryPolicy {
+    <#
+    .SYNOPSIS
+        Ensures a GPO exists, carries the given DWORD registry settings and is linked to the given targets.
+        Only missing or different values are written; existing links are kept. Returns nothing.
+        Callers must pass -WhatIf:$WhatIfPreference: preference variables don't flow into module functions.
+    #>
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory)][string]$GpoName,
+        [Parameter(Mandatory)][string]$Comment,
+        # Each item: @{ Key = 'HKLM\...'; ValueName = '...'; Value = <int> }
+        [Parameter(Mandatory)][hashtable[]]$Settings,
+        [Parameter(Mandatory)][string[]]$LinkTargets
+    )
+    $gpo = Get-GPO -Name $GpoName -ErrorAction SilentlyContinue
+    if (-not $gpo -and $PSCmdlet.ShouldProcess($GpoName, 'Create GPO')) {
+        $gpo = New-GPO -Name $GpoName -Comment $Comment
+        Write-LabChange -Action 'CreateGpo' -Target $GpoName
+    }
+    if (-not $gpo) { return }
+    foreach ($s in $Settings) {
+        $current = Get-GPRegistryValue -Name $GpoName -Key $s.Key -ValueName $s.ValueName -ErrorAction SilentlyContinue
+        if (-not $current -or $current.Value -ne $s.Value) {
+            if ($PSCmdlet.ShouldProcess("$GpoName $($s.ValueName)", "Set to $($s.Value)")) {
+                Set-GPRegistryValue -Name $GpoName -Key $s.Key -ValueName $s.ValueName -Type DWord -Value $s.Value | Out-Null
+                Write-LabChange -Action 'SetGpoValue' -Target $GpoName -Detail "$($s.ValueName)=$($s.Value)"
+            }
+        }
+    }
+    foreach ($target in $LinkTargets) {
+        $linked = @((Get-GPInheritance -Target $target).GpoLinks | Where-Object { $_.DisplayName -eq $GpoName })
+        if (-not $linked -and $PSCmdlet.ShouldProcess($target, "Link $GpoName")) {
+            New-GPLink -Name $GpoName -Target $target | Out-Null
+            Write-LabChange -Action 'LinkGpo' -Target $target -Detail $GpoName
+        }
+    }
+}
+
+Export-ModuleMember -Function Get-LabDomainName, Assert-LabDomain, Write-LabChange, Import-LabAdModule, Set-LabGpoRegistryPolicy
