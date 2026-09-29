@@ -6,7 +6,7 @@
     1. Creates tier admin groups GG-Tier0-Admins, GG-Tier1-Admins, GG-Tier2-Admins in the Admin tier OUs.
     2. Removes any permission GG-Helpdesk holds on the Admin OU (the path to Domain Admins found by BloodHound).
     3. Grants GG-Helpdesk "reset password" only on the Corp user OUs.
-    4. Creates and links the GPO "LAB-Tier0-Logon-Restrictions" to the Corp computer OUs: Tier 0 accounts
+    4. Creates and links the GPO "LAB-Tier0-Logon-Restrictions" to the Corp computer and Servers OUs: Tier 0 accounts
        (Domain Admins, Enterprise Admins, GG-Tier0-Admins) are denied interactive, RDP, batch and service logon
        on workstations and member servers.
     Review with -WhatIf first and confirm with `gpresult /r` on ws01 after `gpupdate /force`: user-rights
@@ -98,8 +98,9 @@ if (-not $gpo -and $PSCmdlet.ShouldProcess($gpoName, 'Create GPO')) {
 if ($gpo) {
     # Merges into the GPO's GptTmpl.inf, bumps its version and registers the security extension.
     Set-LabGpoSecurityTemplate -GpoId $gpo.Id -Sections $rights -WhatIf:$WhatIfPreference
-    foreach ($dept in $departments) {
-        $ou = "OU=Computers,OU=$dept,OU=Corp,$domainDn"
+    # Workstation OUs (Tier 2) and the Servers OU (Tier 1, member servers such as app01).
+    $targets = @($departments | ForEach-Object { "OU=Computers,OU=$_,OU=Corp,$domainDn" }) + "OU=Servers,OU=Corp,$domainDn"
+    foreach ($ou in $targets) {
         $linked = @((Get-GPInheritance -Target $ou).GpoLinks | Where-Object { $_.DisplayName -eq $gpoName })
         if (-not $linked -and $PSCmdlet.ShouldProcess($ou, "Link $gpoName")) {
             New-GPLink -Name $gpoName -Target $ou | Out-Null

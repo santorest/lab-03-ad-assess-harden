@@ -9,7 +9,10 @@ Describe 'Enable-WindowsLaps' {
         $domain = [pscustomobject]@{ DNSRoot = 'corp.internal'; DistinguishedName = 'DC=corp,DC=internal'; SubordinateReferences = @() }
         Mock Get-ADDomain -ModuleName LabCommon { $domain }
         Mock Get-ADDomain { $domain }
-        Mock Get-ADGroup { [pscustomobject]@{ SID = $global:LabTestSid } }
+        Mock Get-ADGroup {
+            $sid = if ($Identity -eq 'GG-Tier1-Admins') { 'S-1-5-21-1-2-3-1104' } else { $global:LabTestSid.Value }
+            [pscustomobject]@{ SID = [System.Security.Principal.SecurityIdentifier]$sid }
+        }
         Mock Write-LabChange {}
         Mock Update-LapsADSchema {}
         Mock Set-LapsADComputerSelfPermission {}
@@ -30,7 +33,7 @@ Describe 'Enable-WindowsLaps' {
         }
         It 'uses the Windows LAPS group-policy key (not the MDM/CSP key)' {
             & $script:Target
-            Should -Invoke Set-LabGpoRegistryPolicy -Times 1 -Exactly -ParameterFilter {
+            Should -Invoke Set-LabGpoRegistryPolicy -Times 2 -Exactly -ParameterFilter {
                 -not ($Settings | Where-Object Key -ne 'HKLM\Software\Microsoft\Windows\CurrentVersion\Policies\LAPS')
             }
         }
@@ -43,6 +46,16 @@ Describe 'Enable-WindowsLaps' {
             }
             Should -Invoke Get-ADGroup -ParameterFilter { $Identity -eq 'GG-Tier2-Admins' }
         }
+        It 'gives member servers their own policy: only Tier 1 admins read and decrypt server passwords' {
+            & $script:Target
+            $servers = 'OU=Servers,OU=Corp,DC=corp,DC=internal'
+            Should -Invoke Set-LapsADReadPasswordPermission -Times 1 -Exactly -ParameterFilter { $Identity -eq $servers -and $AllowedPrincipals -eq 'GG-Tier1-Admins' }
+            Should -Invoke Set-LapsADComputerSelfPermission -Times 1 -Exactly -ParameterFilter { $Identity -eq $servers }
+            Should -Invoke Set-LabGpoRegistryPolicy -Times 1 -Exactly -ParameterFilter {
+                $GpoName -eq 'LAB-Windows-LAPS-Servers' -and @($LinkTargets) -join '|' -eq $servers -and
+                ($Settings | Where-Object ValueName -eq 'ADPasswordEncryptionPrincipal').Value -eq 'S-1-5-21-1-2-3-1104'
+            }
+        }
         It 'lets only Tier 2 admins read workstation passwords' {
             & $script:Target
             Should -Invoke Set-LapsADReadPasswordPermission -Times 3 -Exactly -ParameterFilter { $AllowedPrincipals -eq 'GG-Tier2-Admins' }
@@ -51,7 +64,7 @@ Describe 'Enable-WindowsLaps' {
             & $script:Target -WhatIf
             Should -Invoke Update-LapsADSchema -Times 0 -Exactly
             Should -Invoke Set-LapsADReadPasswordPermission -Times 0 -Exactly
-            Should -Invoke Set-LabGpoRegistryPolicy -Times 1 -Exactly -ParameterFilter { $WhatIf }
+            Should -Invoke Set-LabGpoRegistryPolicy -Times 2 -Exactly -ParameterFilter { $WhatIf }
         }
     }
 

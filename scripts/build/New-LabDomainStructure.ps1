@@ -29,7 +29,7 @@ $ous = @(
     'OU=Corp', 'OU=Finance,OU=Corp', 'OU=Users,OU=Finance,OU=Corp', 'OU=Computers,OU=Finance,OU=Corp',
     'OU=Operations,OU=Corp', 'OU=Users,OU=Operations,OU=Corp', 'OU=Computers,OU=Operations,OU=Corp',
     'OU=Management,OU=Corp', 'OU=Users,OU=Management,OU=Corp', 'OU=Computers,OU=Management,OU=Corp',
-    'OU=ServiceAccounts,OU=Corp', 'OU=Groups,OU=Corp',
+    'OU=Servers,OU=Corp', 'OU=ServiceAccounts,OU=Corp', 'OU=Groups,OU=Corp',
     'OU=Admin', 'OU=Tier0,OU=Admin', 'OU=Tier1,OU=Admin', 'OU=Tier2,OU=Admin'
 )
 $departments = @('Finance', 'Operations', 'Management')

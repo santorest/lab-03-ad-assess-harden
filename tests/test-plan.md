@@ -11,6 +11,10 @@
 | A6 | PingCastle after-scan, score lower | docs/assessment/01-pingcastle.md | | evidence/after/ |
 | A7 | BloodHound: no path to Domain Admins from W01/W07/W09 | docs/assessment/02-bloodhound.md | | evidence/after/ |
 | A8 | `gpresult /r` on ws01 shows LAB-Tier0-Logon-Restrictions; a Domain Admin can't log on | Set-TieredAdminModel.ps1 | | screenshot |
+| A9 | GPO versions consistent: `Get-GPO LAB-Tier0-Logon-Restrictions` shows equal DS and SysVol computer versions; `GPT.INI` is at the GPO root | Set-TieredAdminModel.ps1 | | screenshot |
+| A10 | After `gpupdate /force` on dc01, `Get-ADDefaultDomainPasswordPolicy` shows length 14, lockout 10 / 15 min | Set-PasswordPolicy.ps1 | | screenshot |
+| A11 | On ws01, `reg query HKLM\Software\Microsoft\Windows\CurrentVersion\Policies\LAPS` lists the six LAPS settings | Enable-WindowsLaps.ps1 | | screenshot |
+| A12 | `Get-LapsADPassword ws01 -AsPlainText` works for a Tier 2 admin and fails for a Tier 1 admin; for app01 the reverse | Enable-WindowsLaps.ps1 | | screenshot |
 
 ## SIEM (docs/siem-checks.md)
 | # | Check | Result | Evidence |

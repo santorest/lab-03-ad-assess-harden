@@ -46,7 +46,9 @@ Describe 'Set-TieredAdminModel' {
         & $script:Target
         Should -Invoke New-ADGroup -Times 3 -Exactly
         Should -Invoke Set-Acl -Times 3 -Exactly
-        Should -Invoke New-GPLink -Times 3 -Exactly
+        # Workstation OUs plus the Servers OU: Tier 0 accounts must not log on to member servers either.
+        Should -Invoke New-GPLink -Times 4 -Exactly
+        Should -Invoke New-GPLink -Times 1 -Exactly -ParameterFilter { $Target -eq 'OU=Servers,OU=Corp,DC=corp,DC=internal' }
     }
 
     It 'writes deny-logon rights for the Tier 0 SIDs through the shared security-template helper' {

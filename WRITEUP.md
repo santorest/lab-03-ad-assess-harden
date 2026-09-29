@@ -76,7 +76,7 @@ bundle: "Published on the portfolio site with its SHA-256 checksum"
 | Script | Fixes |
 |---|---|
 | `Set-TieredAdminModel.ps1` | W07, W09 — tier groups, helpdesk delegation only on user OUs, Tier 0 denied on workstations and servers |
-| `Enable-WindowsLaps.ps1` | W03 — unique, rotated local admin passwords, readable only by Tier 2 admins |
+| `Enable-WindowsLaps.ps1` | W03 — unique, rotated, encrypted local admin passwords: workstation passwords readable only by Tier 2 admins, server passwords only by Tier 1 |
 | `Convert-ServiceAccountToGmsa.ps1` | W01, W02 — service account replaced by a gMSA, removed from Domain Admins |
 | `Disable-LegacyProtocols.ps1` | W04, W05 — SMBv1 off, SMB signing required, NTLMv2 only |
 | `Set-LdapSigning.ps1` | W06 — LDAP signing required, channel binding enforced |

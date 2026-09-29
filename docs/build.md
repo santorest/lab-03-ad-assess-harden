@@ -25,5 +25,14 @@ Isolated lab only (Lab 02's network). Windows evaluation licences are enough.
    It creates the `Corp` and `Admin` OU trees, department groups, `GG-Helpdesk` and 40 fictional users. Users
    get a random password nobody knows and must change it at first logon: reset the password of the few accounts
    you use (`Set-ADAccountPassword -Reset`). Every change is logged to `logs/changes.log`.
+
+   Then move the joined machines out of the default `Computers` container, so each tier's policies reach them:
+
+   ```powershell
+   $dn = (Get-ADDomain).DistinguishedName
+   Get-ADComputer app01 | Move-ADObject -TargetPath "OU=Servers,OU=Corp,$dn"                 # Tier 1
+   Get-ADComputer ws01  | Move-ADObject -TargetPath "OU=Computers,OU=Finance,OU=Corp,$dn"     # Tier 2
+   Get-ADComputer ws02  | Move-ADObject -TargetPath "OU=Computers,OU=Operations,OU=Corp,$dn"  # Tier 2
+   ```
 5. **Snapshot all four VMs** — this is the clean baseline you can return to.
 6. Apply the weaknesses in [weaknesses.md](weaknesses.md), then snapshot again: that is the "before" state.

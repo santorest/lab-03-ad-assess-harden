@@ -23,7 +23,9 @@ Describe 'New-LabDomainStructure' {
 
         It 'creates every OU, group and user' {
             & $script:Build -UserCount 5
-            Should -Invoke New-ADOrganizationalUnit -Times 16 -Exactly
+            Should -Invoke New-ADOrganizationalUnit -Times 17 -Exactly
+            # Member servers (Tier 1) get their own OU, apart from the workstation OUs (Tier 2).
+            Should -Invoke New-ADOrganizationalUnit -Times 1 -Exactly -ParameterFilter { $Name -eq 'Servers' -and $Path -eq 'OU=Corp,DC=corp,DC=internal' }
             Should -Invoke New-ADGroup -Times 4 -Exactly
             Should -Invoke New-ADUser -Times 5 -Exactly
         }
