@@ -48,31 +48,36 @@ Describe 'Set-PasswordPolicy' {
         Mock Get-ADDomain -ModuleName LabCommon { $global:LabTestDomain }
         Mock Get-ADDomain { $global:LabTestDomain }
         Mock Write-LabChange {}
-        Mock Set-ADDefaultDomainPasswordPolicy {}
+        Mock Set-LabGpoSecurityTemplate {}
         Mock New-ADFineGrainedPasswordPolicy { [pscustomobject]@{ AppliesTo = @() } }
         Mock Add-ADFineGrainedPasswordPolicySubject {}
     }
-    It 'raises the domain policy to length 14 / lockout 10 and creates the Tier 0 policy (length 20)' {
-        Mock Get-ADDefaultDomainPasswordPolicy { [pscustomobject]@{ MinPasswordLength = 7; LockoutThreshold = 0; ComplexityEnabled = $true } }
+    It 'writes length 14 / lockout 10 into the Default Domain Policy and creates the Tier 0 policy (length 20)' {
         Mock Get-ADFineGrainedPasswordPolicy { $null }
         & (Join-Path $script:Harden 'Set-PasswordPolicy.ps1')
-        Should -Invoke Set-ADDefaultDomainPasswordPolicy -Times 1 -Exactly -ParameterFilter { $MinPasswordLength -eq 14 -and $LockoutThreshold -eq 10 }
+        # The Default Domain Policy GPO is authoritative for domain password settings: DCs re-apply its
+        # GptTmpl.inf, so writing the domain attributes directly would be reverted.
+        Should -Invoke Set-LabGpoSecurityTemplate -Times 1 -Exactly -ParameterFilter {
+            $GpoId -eq [guid]'31B2F340-016D-11D2-945F-00C04FB984F9' -and
+            $Sections['System Access']['MinimumPasswordLength'] -eq '14' -and
+            $Sections['System Access']['PasswordComplexity'] -eq '1' -and
+            $Sections['System Access']['LockoutBadCount'] -eq '10' -and
+            $Sections['System Access']['LockoutDuration'] -eq '15' -and
+            $Sections['System Access']['ResetLockoutCount'] -eq '15'
+        }
         Should -Invoke New-ADFineGrainedPasswordPolicy -Times 1 -Exactly -ParameterFilter { $MinPasswordLength -eq 20 }
         Should -Invoke Add-ADFineGrainedPasswordPolicySubject -Times 1 -Exactly -ParameterFilter { $Subjects -eq 'GG-Tier0-Admins' }
     }
-    It 'changes nothing when already compliant' {
-        Mock Get-ADDefaultDomainPasswordPolicy { [pscustomobject]@{ MinPasswordLength = 14; LockoutThreshold = 10; ComplexityEnabled = $true } }
+    It 'does not recreate or re-apply the Tier 0 policy when it is already in place' {
         Mock Get-ADFineGrainedPasswordPolicy { [pscustomobject]@{ AppliesTo = @('CN=GG-Tier0-Admins,OU=Tier0,OU=Admin,DC=corp,DC=internal') } }
         & (Join-Path $script:Harden 'Set-PasswordPolicy.ps1')
-        Should -Invoke Set-ADDefaultDomainPasswordPolicy -Times 0 -Exactly
         Should -Invoke New-ADFineGrainedPasswordPolicy -Times 0 -Exactly
         Should -Invoke Add-ADFineGrainedPasswordPolicySubject -Times 0 -Exactly
     }
     It 'changes nothing with -WhatIf' {
-        Mock Get-ADDefaultDomainPasswordPolicy { [pscustomobject]@{ MinPasswordLength = 7; LockoutThreshold = 0; ComplexityEnabled = $true } }
         Mock Get-ADFineGrainedPasswordPolicy { $null }
         & (Join-Path $script:Harden 'Set-PasswordPolicy.ps1') -WhatIf
-        Should -Invoke Set-ADDefaultDomainPasswordPolicy -Times 0 -Exactly
+        Should -Invoke Set-LabGpoSecurityTemplate -Times 1 -Exactly -ParameterFilter { $WhatIf }
         Should -Invoke New-ADFineGrainedPasswordPolicy -Times 0 -Exactly
     }
 }

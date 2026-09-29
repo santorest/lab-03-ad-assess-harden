@@ -3,7 +3,8 @@
 .SYNOPSIS
     Fixes W10: stronger domain password and lockout policy, plus a stricter policy for Tier 0 admins.
 .DESCRIPTION
-    Domain policy: minimum length 14, complexity on, lockout after 10 failed attempts for 15 minutes.
+    Domain policy (Default Domain Policy GPO): minimum length 14, complexity on, lockout after 10 failed
+    attempts for 15 minutes. Applies at the next policy refresh on the DCs (or `gpupdate /force`).
     Fine-grained policy "LAB-Tier0-Admins" (applied to GG-Tier0-Admins): minimum length 20, lockout after 5.
     Run Set-TieredAdminModel.ps1 first (it creates GG-Tier0-Admins).
     Idempotent and -WhatIf aware. Refuses to run outside corp.internal unless -Force.
@@ -16,17 +17,22 @@ $ErrorActionPreference = 'Stop'
 if (-not (Get-Module LabCommon)) { Import-Module (Join-Path (Split-Path $PSScriptRoot -Parent) 'LabCommon.psm1') }
 Import-LabAdModule
 Assert-LabDomain -Force:$Force
-$domain = Get-ADDomain
 $window = New-TimeSpan -Minutes 15
 
-$policy = Get-ADDefaultDomainPasswordPolicy -Identity $domain.DNSRoot
-if ($policy.MinPasswordLength -lt 14 -or $policy.LockoutThreshold -ne 10 -or -not $policy.ComplexityEnabled) {
-    if ($PSCmdlet.ShouldProcess($domain.DNSRoot, 'Set domain password policy (length 14, lockout 10)')) {
-        Set-ADDefaultDomainPasswordPolicy -Identity $domain.DNSRoot -MinPasswordLength 14 -ComplexityEnabled $true `
-            -LockoutThreshold 10 -LockoutDuration $window -LockoutObservationWindow $window
-        Write-LabChange -Action 'SetPasswordPolicy' -Target $domain.DNSRoot -Detail 'length 14, lockout 10'
+# The Default Domain Policy GPO is authoritative for the domain password and lockout policy: domain controllers
+# re-apply its security template, so changing the domain attributes directly would be reverted on the next
+# refresh. Merge the settings into its GptTmpl.inf [System Access] instead (only when they differ).
+$defaultDomainPolicy = [guid]'31B2F340-016D-11D2-945F-00C04FB984F9'
+$domainPolicy = [ordered]@{
+    'System Access' = [ordered]@{
+        MinimumPasswordLength = '14'
+        PasswordComplexity    = '1'
+        LockoutBadCount       = '10'
+        LockoutDuration       = '15'
+        ResetLockoutCount     = '15'
     }
 }
+Set-LabGpoSecurityTemplate -GpoId $defaultDomainPolicy -Sections $domainPolicy -WhatIf:$WhatIfPreference
 
 $fgppName = 'LAB-Tier0-Admins'
 $fgpp = Get-ADFineGrainedPasswordPolicy -Filter "Name -eq '$fgppName'" -Properties AppliesTo

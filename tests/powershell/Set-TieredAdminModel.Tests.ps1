@@ -21,6 +21,7 @@ Describe 'Set-TieredAdminModel' {
         Mock Get-ADObject { [pscustomobject]@{ versionNumber = 1 } }
         Mock Test-Path { $false }
         Mock Get-GPInheritance { [pscustomobject]@{ GpoLinks = @() } }
+        Mock Set-LabGpoSecurityTemplate {}
     }
 
     It 'refuses to run on another domain' {
@@ -48,12 +49,26 @@ Describe 'Set-TieredAdminModel' {
         Should -Invoke New-GPLink -Times 3 -Exactly
     }
 
-    It 'writes deny-logon rights for the Tier 0 SIDs into the GPO security template' {
+    It 'writes deny-logon rights for the Tier 0 SIDs through the shared security-template helper' {
         Mock Get-ADGroup { param($Filter, $Identity) if ($Filter) { 'exists' } else { [pscustomobject]@{ SID = $global:LabTestSid } } }
         Mock Get-GPO { [pscustomobject]@{ Id = [guid]'11111111-2222-3333-4444-555555555555' } }
+        Mock Set-LabGpoSecurityTemplate {}
         & $script:Target
-        Should -Invoke Set-Content -Times 1 -Exactly -ParameterFilter {
-            $Path -like '*GptTmpl.inf' -and $Value -match 'SeDenyInteractiveLogonRight = \*S-1-5-21-1-2-3-512'
+        Should -Invoke Set-LabGpoSecurityTemplate -Times 1 -Exactly -ParameterFilter {
+            $GpoId -eq [guid]'11111111-2222-3333-4444-555555555555' -and
+            $Sections['Privilege Rights']['SeDenyInteractiveLogonRight'] -match '\*S-1-5-21-1-2-3-512'
         }
+    }
+
+    It 'previews with -WhatIf on a fresh domain where the tier groups do not exist yet' {
+        Mock Get-ADGroup {
+            param($Filter, $Identity)
+            if ($Filter) { $null }
+            elseif ($Identity -like 'GG-Tier*') { throw "Cannot find an object with identity: '$Identity'" }
+            else { [pscustomobject]@{ SID = $global:LabTestSid } }
+        }
+        Mock Get-GPO { $null }
+        { & $script:Target -WhatIf -WarningAction SilentlyContinue } | Should -Not -Throw
+        Should -Invoke New-GPO -Times 0 -Exactly
     }
 }

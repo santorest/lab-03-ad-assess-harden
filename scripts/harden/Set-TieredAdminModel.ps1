@@ -71,22 +71,24 @@ foreach ($dept in $departments) {
 
 # 4. Tier 0 logon restrictions on workstations and member servers
 $gpoName = 'LAB-Tier0-Logon-Restrictions'
-$tier0 = @('Domain Admins', 'Enterprise Admins', 'GG-Tier0-Admins') | ForEach-Object {
-    '*' + (Get-ADGroup -Identity $_).SID.Value
+$tier0 = foreach ($groupName in 'Domain Admins', 'Enterprise Admins', 'GG-Tier0-Admins') {
+    try {
+        '*' + (Get-ADGroup -Identity $groupName).SID.Value
+    } catch {
+        # On a fresh domain the -WhatIf preview runs before step 1 has created GG-Tier0-Admins.
+        if (-not $WhatIfPreference) { throw }
+        Write-Warning "$groupName does not exist yet; the real run creates it first and includes it."
+    }
 }
-$denyList = $tier0 -join ','
-$template = @"
-[Unicode]
-Unicode=yes
-[Version]
-signature="`$CHICAGO`$"
-Revision=1
-[Privilege Rights]
-SeDenyInteractiveLogonRight = $denyList
-SeDenyRemoteInteractiveLogonRight = $denyList
-SeDenyBatchLogonRight = $denyList
-SeDenyServiceLogonRight = $denyList
-"@
+$denyList = @($tier0) -join ','
+$rights = [ordered]@{
+    'Privilege Rights' = [ordered]@{
+        SeDenyInteractiveLogonRight       = $denyList
+        SeDenyRemoteInteractiveLogonRight = $denyList
+        SeDenyBatchLogonRight             = $denyList
+        SeDenyServiceLogonRight           = $denyList
+    }
+}
 
 $gpo = Get-GPO -Name $gpoName -ErrorAction SilentlyContinue
 if (-not $gpo -and $PSCmdlet.ShouldProcess($gpoName, 'Create GPO')) {
@@ -94,21 +96,8 @@ if (-not $gpo -and $PSCmdlet.ShouldProcess($gpoName, 'Create GPO')) {
     Write-LabChange -Action 'CreateGpo' -Target $gpoName
 }
 if ($gpo) {
-    $secEdit = "\\$($domain.DNSRoot)\SYSVOL\$($domain.DNSRoot)\Policies\{$($gpo.Id)}\Machine\Microsoft\Windows NT\SecEdit"
-    $infPath = Join-Path $secEdit 'GptTmpl.inf'
-    $current = if (Test-Path $infPath) { Get-Content -Path $infPath -Raw -Encoding Unicode } else { '' }
-    if ($current.Trim() -ne $template.Trim() -and $PSCmdlet.ShouldProcess($gpoName, 'Write Tier 0 deny-logon rights')) {
-        New-Item -ItemType Directory -Path $secEdit -Force | Out-Null
-        Set-Content -Path $infPath -Value $template -Encoding Unicode
-        # Tell clients the GPO carries security settings and bump its version so they re-apply it.
-        $cse = '[{827D319E-6EAC-11D2-A4EA-00C04F79F83A}{803E14A0-B4FB-11D0-A0D0-00A0C90F574B}]'
-        $gpoDn = "CN={$($gpo.Id)},CN=Policies,CN=System,$domainDn"
-        $obj = Get-ADObject -Identity $gpoDn -Properties versionNumber
-        Set-ADObject -Identity $gpoDn -Replace @{ gPCMachineExtensionNames = $cse; versionNumber = ($obj.versionNumber + 1) }
-        $gptIni = Join-Path (Split-Path (Split-Path (Split-Path $secEdit -Parent) -Parent) -Parent) 'GPT.INI'
-        Set-Content -Path $gptIni -Value "[General]`r`nVersion=$($obj.versionNumber + 1)" -Encoding Ascii
-        Write-LabChange -Action 'SetUserRights' -Target $gpoName -Detail 'Tier 0 denied on workstations/servers'
-    }
+    # Merges into the GPO's GptTmpl.inf, bumps its version and registers the security extension.
+    Set-LabGpoSecurityTemplate -GpoId $gpo.Id -Sections $rights -WhatIf:$WhatIfPreference
     foreach ($dept in $departments) {
         $ou = "OU=Computers,OU=$dept,OU=Corp,$domainDn"
         $linked = @((Get-GPInheritance -Target $ou).GpoLinks | Where-Object { $_.DisplayName -eq $gpoName })
