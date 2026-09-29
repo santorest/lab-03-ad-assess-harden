@@ -5,3 +5,36 @@ weaknesses, assessment with PingCastle, BloodHound CE and Microsoft's security b
 PowerShell, before/after scores and a generated assessment report.
 
 **Category:** Vulnerability Assessment & Pentesting · **Status:** reference design — ready to build
+
+![Architecture](diagrams/architecture.svg)
+
+## Repository layout
+```
+docs/build.md, docs/weaknesses.md   build the domain; the 11 baseline weaknesses (W01-W11)
+docs/assessment/                    PingCastle, BloodHound CE, Policy Analyzer guides
+docs/siem-checks.md                 events to confirm in Wazuh (Lab 01)
+scripts/LabCommon.psm1              domain guard, change log, GPO registry helper
+scripts/build/                      domain structure (OUs, groups, users)
+scripts/harden/                     one idempotent, -WhatIf-aware script per control
+findings/findings.yaml              findings register (drives the report)
+adlab/                              findings model, PingCastle score parser, report generator (Python)
+report/                             report template and generated report (HTML; PDF is git-ignored)
+tests/python, tests/powershell      pytest and Pester 5 suites (run in CI)
+evidence/                           tool exports (git-ignored until sanitized)
+```
+
+## Usage
+```bash
+python -m pip install -r requirements-dev.txt
+python -m pytest                                          # Python tests
+python -m adlab.findings findings/findings.yaml --check-scripts
+python -m adlab.scores                                    # PingCastle before/after table (Pending until exports exist)
+python -m adlab.report --pdf                              # assessment report (Draft until measured)
+```
+PowerShell tests: `Invoke-Pester tests/powershell` (Pester 5).
+
+> All testing is performed only in an isolated lab environment I own. The repository automates fixes only; it
+> contains no code that weakens a domain or exploits one.
+
+## License
+[MIT](LICENSE)

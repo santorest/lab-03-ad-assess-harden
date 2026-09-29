@@ -1,0 +1,30 @@
+# Metadata used by the portfolio site's `import_lab` command (site repo). Not needed to run the lab.
+slug: ad-assess-harden
+category: vulnerability-pentesting
+repo_url: https://github.com/santorest/lab-03-ad-assess-harden
+status: design               # design | in_progress | complete
+difficulty: advanced         # beginner | intermediate | advanced
+featured: true
+# Show the site's "illustrative output" notice only once the write-up contains lab output/screenshots.
+sample_output_notice: false
+cover: diagrams/architecture.png
+writeup:
+  en: WRITEUP.md
+  es: WRITEUP.es.md
+title:
+  en: "Active Directory: Assess, Harden and Validate"
+  es: "Active Directory: evaluar, endurecer y validar"
+summary:
+  en: >-
+    Defensive Active Directory engagement for a fictional small company: eleven typical weaknesses, assessment
+    with PingCastle, BloodHound CE and Microsoft's baseline, tested PowerShell hardening, and a generated report.
+  es: >-
+    Trabajo defensivo sobre Active Directory para una pequeña empresa ficticia: once debilidades típicas,
+    evaluación con PingCastle, BloodHound CE y la línea base de Microsoft, endurecimiento en PowerShell probado e
+    informe generado.
+tools: [Active Directory, PingCastle, BloodHound CE, PowerShell, Pester, Windows LAPS, Python]
+mitre_attack: []
+bundle:
+  title:
+    en: Lab source bundle
+    es: Paquete de fuentes del laboratorio

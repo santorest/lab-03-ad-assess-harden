@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 520" width="1000" height="520" font-family="Segoe UI, Helvetica, Arial, sans-serif" role="img" aria-labelledby="title desc">
+  <title id="title">Lab 03 architecture: Active Directory assess, harden and validate</title>
+  <desc id="desc">The corp.internal domain with dc01, app01, ws01 and ws02 and tiered administration. From the management jump host the assessment tools PingCastle, BloodHound CE and Policy Analyzer read the domain; PowerShell hardening scripts change it; Wazuh from Lab 01 receives the security events.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#334155"/>
+    </marker>
+    <style>
+      .site { fill: #f8fafc; stroke: #94a3b8; stroke-width: 1.5; stroke-dasharray: 6 4; }
+      .label { font-size: 14px; font-weight: 700; fill: #334155; }
+      .box { fill: #ffffff; stroke: #334155; stroke-width: 1.4; }
+      .dc { fill: #ecfeff; stroke: #0e7490; stroke-width: 2.2; }
+      .tier0 { fill: #fef2f2; stroke: #b91c1c; stroke-width: 1.4; }
+      .tier1 { fill: #fff7ed; stroke: #c2410c; stroke-width: 1.4; }
+      .tier2 { fill: #f0fdf4; stroke: #15803d; stroke-width: 1.4; }
+      .tool { fill: #f1f5f9; stroke: #64748b; stroke-width: 1.4; }
+      .name { font-size: 14px; font-weight: 700; fill: #0f172a; }
+      .role { font-size: 11.5px; fill: #334155; }
+      .ip { font-size: 10.5px; fill: #64748b; font-family: Consolas, monospace; }
+      .flow { stroke: #334155; stroke-width: 1.6; fill: none; marker-end: url(#arrow); }
+      .flabel { font-size: 11px; fill: #0f172a; font-family: Consolas, monospace; }
+      .bg { fill: #ffffff; }
+    </style>
+  </defs>
+  <rect width="1000" height="520" fill="#ffffff"/>
+  <text x="20" y="32" font-size="18" font-weight="700" fill="#0f172a">Lab 03 — Active Directory: assess → harden → validate (corp.internal)</text>
+
+  <!-- Domain -->
+  <rect class="site" x="20" y="50" width="600" height="450" rx="14"/>
+  <text class="label" x="36" y="74">Domain corp.internal</text>
+
+  <rect class="tier0" x="40" y="90" width="270" height="120" rx="10"/>
+  <text class="name" x="54" y="112">Tier 0 — identity</text>
+  <rect class="dc" x="54" y="124" width="240" height="72" rx="8"/>
+  <text class="name" x="66" y="146">dc01</text>
+  <text class="role" x="66" y="164">Windows Server 2022 · DC · DNS</text>
+  <text class="ip" x="66" y="182">10.10.20.11 · Wazuh agent</text>
+
+  <rect class="tier1" x="330" y="90" width="270" height="120" rx="10"/>
+  <text class="name" x="344" y="112">Tier 1 — servers</text>
+  <rect class="box" x="344" y="124" width="240" height="72" rx="8"/>
+  <text class="name" x="356" y="146">app01</text>
+  <text class="role" x="356" y="164">WS2022 · file/app server · gMSA</text>
+  <text class="ip" x="356" y="182">10.10.20.13</text>
+
+  <rect class="tier2" x="40" y="228" width="560" height="120" rx="10"/>
+  <text class="name" x="54" y="250">Tier 2 — workstations</text>
+  <rect class="box" x="54" y="262" width="240" height="72" rx="8"/>
+  <text class="name" x="66" y="284">ws01</text>
+  <text class="role" x="66" y="302">Windows 11 · LAPS</text>
+  <text class="ip" x="66" y="320">10.10.30.21</text>
+  <rect class="box" x="344" y="262" width="240" height="72" rx="8"/>
+  <text class="name" x="356" y="284">ws02</text>
+  <text class="role" x="356" y="302">Windows 11 · LAPS</text>
+  <text class="ip" x="356" y="320">10.10.30.22</text>
+
+  <rect class="box" x="40" y="366" width="560" height="118" rx="10"/>
+  <text class="name" x="54" y="390">Hardening (PowerShell, idempotent, -WhatIf)</text>
+  <text class="role" x="54" y="412">Tiered admin model · Windows LAPS · gMSA · SMBv1/NTLMv1 off · SMB signing</text>
+  <text class="role" x="54" y="432">LDAP signing + channel binding · password policy · Spooler off on DCs</text>
+  <text class="role" x="54" y="452">stale accounts (report first) · Microsoft WS2022 security baseline</text>
+  <text class="ip" x="54" y="472">every change logged · refuses to run outside corp.internal</text>
+
+  <!-- Tools -->
+  <rect class="tool" x="660" y="90" width="320" height="170" rx="14"/>
+  <text class="label" x="676" y="114">Assessment (read-only)</text>
+  <text class="role" x="676" y="140">PingCastle — risk score, before / after</text>
+  <text class="role" x="676" y="162">BloodHound CE — paths to Domain Admins</text>
+  <text class="role" x="676" y="184">Policy Analyzer — WS2022 baseline gaps</text>
+  <text class="role" x="676" y="214">→ findings register (YAML)</text>
+  <text class="role" x="676" y="236">→ generated report (HTML / PDF)</text>
+
+  <rect class="tool" x="660" y="300" width="320" height="110" rx="14"/>
+  <text class="label" x="676" y="324">Lab 01 · Wazuh SIEM</text>
+  <text class="role" x="676" y="350">group changes 4728/4732/4756</text>
+  <text class="role" x="676" y="370">failed logons 4625 · lockouts 4740</text>
+  <text class="role" x="676" y="390">LAPS password reads 4662</text>
+
+  <path class="flow" d="M660,175 L620,175"/>
+  <rect class="bg" x="622" y="150" width="36" height="16"/>
+  <text class="flabel" x="624" y="162">scan</text>
+  <path class="flow" d="M620,355 L660,355"/>
+  <rect class="bg" x="620" y="330" width="50" height="16"/>
+  <text class="flabel" x="621" y="342">events</text>
+</svg>

@@ -1,0 +1,11 @@
+%% Source for architecture.svg (kept in sync by hand)
+flowchart LR
+  subgraph D[Domain corp.internal]
+    t0[Tier 0: dc01 DC + DNS]
+    t1[Tier 1: app01 member server, gMSA]
+    t2[Tier 2: ws01, ws02 - LAPS]
+    h[Hardening scripts: PowerShell, idempotent, -WhatIf]
+  end
+  a[Assessment: PingCastle, BloodHound CE, Policy Analyzer] -- scan --> D
+  a --> f[findings.yaml] --> r[report HTML/PDF]
+  D -- events --> w[Lab 01 Wazuh]

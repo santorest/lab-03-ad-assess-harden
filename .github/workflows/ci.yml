@@ -19,7 +19,7 @@ jobs:
       - run: python -m pip install -r requirements-dev.txt
       - run: ruff check .
       - run: python -m pytest
-      - run: python -m adlab.findings findings/findings.yaml
+      - run: python -m adlab.findings findings/findings.yaml --check-scripts
 
   powershell:
     runs-on: windows-latest
