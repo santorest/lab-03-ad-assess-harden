@@ -103,7 +103,8 @@ bundle: "Published on the portfolio site with its SHA-256 checksum"
 
 - A catalogue of eleven weaknesses with why they're common, how to reproduce them and which tool flags them.
 - Nine hardening scripts plus a domain-build script: idempotent, `-WhatIf`-aware, logging every change and
-  refusing to run outside `corp.internal`. Each has Pester tests; they were also exercised in Windows PowerShell
+  refusing to run outside `corp.internal`. Each has Pester tests written for it, which have not run yet (they need Pester 5 in CI). The scripts
+  were exercised in Windows PowerShell
   5.1 against stand-in AD cmdlets, which caught a bug where `-WhatIf` didn't reach a shared helper.
 - A findings register that rejects "fixed" without proof, a PingCastle score parser, and a report generator
   that stays marked *Draft* until real before/after scans exist.
@@ -131,7 +132,11 @@ bundle: "Published on the portfolio site with its SHA-256 checksum"
 - **"Fixed" needs proof.** The register refuses a fixed finding without `verified_by`, and the report stays a
   draft until the after-scan exists.
 
-**Roadmap:** build the lab, run the before/after assessments, publish the measured score change, and extend
+**Open items before use:** a review of the scripts found issues to fix first — the Pester suite can't pass as
+written, the Tier 0 GPO version file goes to the wrong folder, some settings would be overridden by the default
+domain policies, and the LAPS settings need corrections. They are tracked for the next iteration.
+
+**Roadmap:** fix the open items and get the Pester suite passing in CI, build the lab, run the before/after assessments, publish the measured score change, and extend
 with Active Directory Certificate Services hardening.
 
 ## 7. Reproduce it yourself

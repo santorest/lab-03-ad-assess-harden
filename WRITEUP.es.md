@@ -78,8 +78,8 @@
 
 - Un catálogo de once debilidades con por qué son comunes, cómo reproducirlas y qué herramienta las detecta.
 - Nueve scripts de endurecimiento y uno de construcción del dominio: idempotentes, compatibles con `-WhatIf`,
-  que registran cada cambio y se niegan a ejecutarse fuera de `corp.internal`. Cada uno tiene pruebas Pester;
-  además se ejecutaron en Windows PowerShell 5.1 contra cmdlets de AD simulados, lo que detectó un error por el
+  que registran cada cambio y se niegan a ejecutarse fuera de `corp.internal`. Cada uno tiene pruebas Pester
+  escritas, que aún no se han ejecutado (requieren Pester 5 en CI). Los scripts se ejecutaron en Windows PowerShell 5.1 contra cmdlets de AD simulados, lo que detectó un error por el
   que `-WhatIf` no llegaba a una función compartida.
 - Un registro de hallazgos que rechaza "corregido" sin prueba, un analizador del puntaje de PingCastle y un
   generador de informes que se mantiene como *Borrador* hasta que existan escaneos reales de antes y después.
@@ -108,7 +108,12 @@
 - **"Corregido" necesita prueba.** El registro rechaza un hallazgo corregido sin `verified_by` y el informe sigue
   como borrador hasta que existe el escaneo final.
 
-**Hoja de ruta:** construir el laboratorio, hacer las evaluaciones de antes y después, publicar el cambio medido
+**Pendientes antes de usarlo:** una revisión de los scripts encontró problemas que corregir primero: las pruebas
+Pester no pueden pasar tal como están, el archivo de versión de la GPO del Nivel 0 se escribe en la carpeta
+equivocada, algunos valores serían sobrescritos por las directivas predeterminadas del dominio y la configuración
+de LAPS necesita correcciones. Se atenderán en la siguiente iteración.
+
+**Hoja de ruta:** corregir los pendientes y lograr que las pruebas Pester pasen en CI, construir el laboratorio, hacer las evaluaciones de antes y después, publicar el cambio medido
 del puntaje y ampliar con el endurecimiento de Active Directory Certificate Services.
 
 ## 7. Reprodúcelo tú mismo

@@ -17,10 +17,10 @@ title:
 summary:
   en: >-
     Defensive Active Directory engagement for a fictional small company: eleven typical weaknesses, assessment
-    with PingCastle, BloodHound CE and Microsoft's baseline, tested PowerShell hardening, and a generated report.
+    with PingCastle, BloodHound CE and Microsoft's baseline, PowerShell hardening scripts, and a generated report.
   es: >-
     Trabajo defensivo sobre Active Directory para una pequeña empresa ficticia: once debilidades típicas,
-    evaluación con PingCastle, BloodHound CE y la línea base de Microsoft, endurecimiento en PowerShell probado e
+    evaluación con PingCastle, BloodHound CE y la línea base de Microsoft, scripts de endurecimiento en PowerShell e
     informe generado.
 tools: [Active Directory, PingCastle, BloodHound CE, PowerShell, Pester, Windows LAPS, Python]
 mitre_attack: []
