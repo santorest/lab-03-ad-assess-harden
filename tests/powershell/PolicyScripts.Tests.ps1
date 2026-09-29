@@ -1,16 +1,16 @@
 BeforeAll {
     . (Join-Path $PSScriptRoot 'TestHelpers.ps1')
     $script:Harden = Join-Path $script:ScriptsDir 'harden'
-    $script:Domain = [pscustomobject]@{ DNSRoot = 'corp.internal'; DistinguishedName = 'DC=corp,DC=internal' }
+    $global:LabTestDomain = [pscustomobject]@{ DNSRoot = 'corp.internal'; DistinguishedName = 'DC=corp,DC=internal' }
 }
 
 Describe 'GPO registry scripts (Disable-LegacyProtocols, Set-LdapSigning)' -ForEach @(
-    @{ Script = 'Disable-LegacyProtocols.ps1'; Gpo = 'LAB-Legacy-Protocols'; Values = 4; Key = 'LmCompatibilityLevel'; Expect = 5 }
-    @{ Script = 'Set-LdapSigning.ps1'; Gpo = 'LAB-LDAP-Signing'; Values = 2; Key = 'LdapEnforceChannelBinding'; Expect = 2 }
+    @{ Script = 'Disable-LegacyProtocols.ps1'; Gpo = 'LAB-Legacy-Protocols'; Values = 4; ExpectName = 'LmCompatibilityLevel'; ExpectValue = 5 }
+    @{ Script = 'Set-LdapSigning.ps1'; Gpo = 'LAB-LDAP-Signing'; Values = 2; ExpectName = 'LdapEnforceChannelBinding'; ExpectValue = 2 }
 ) {
     BeforeEach {
-        Mock Get-ADDomain -ModuleName LabCommon { $script:Domain }
-        Mock Get-ADDomain { $script:Domain }
+        Mock Get-ADDomain -ModuleName LabCommon { $global:LabTestDomain }
+        Mock Get-ADDomain { $global:LabTestDomain }
         # The helper lives in LabCommon, so its cmdlets are mocked inside that module.
         Mock Write-LabChange -ModuleName LabCommon {}
         Mock Get-GPO -ModuleName LabCommon { $null }
@@ -25,7 +25,7 @@ Describe 'GPO registry scripts (Disable-LegacyProtocols, Set-LdapSigning)' -ForE
         & (Join-Path $script:Harden $Script)
         Should -Invoke New-GPO -ModuleName LabCommon -Times 1 -Exactly -ParameterFilter { $Name -eq $Gpo }
         Should -Invoke Set-GPRegistryValue -ModuleName LabCommon -Times $Values -Exactly
-        Should -Invoke Set-GPRegistryValue -ModuleName LabCommon -Times 1 -Exactly -ParameterFilter { $ValueName -eq $Key -and $Value -eq $Expect }
+        Should -Invoke Set-GPRegistryValue -ModuleName LabCommon -Times 1 -Exactly -ParameterFilter { $ValueName -eq $ExpectName -and $Value -eq $ExpectValue }
         Should -Invoke New-GPLink -ModuleName LabCommon -Times 1 -Exactly
     }
 
@@ -45,8 +45,8 @@ Describe 'GPO registry scripts (Disable-LegacyProtocols, Set-LdapSigning)' -ForE
 
 Describe 'Set-PasswordPolicy' {
     BeforeEach {
-        Mock Get-ADDomain -ModuleName LabCommon { $script:Domain }
-        Mock Get-ADDomain { $script:Domain }
+        Mock Get-ADDomain -ModuleName LabCommon { $global:LabTestDomain }
+        Mock Get-ADDomain { $global:LabTestDomain }
         Mock Write-LabChange {}
         Mock Set-ADDefaultDomainPasswordPolicy {}
         Mock New-ADFineGrainedPasswordPolicy { [pscustomobject]@{ AppliesTo = @() } }
@@ -79,7 +79,7 @@ Describe 'Set-PasswordPolicy' {
 
 Describe 'Disable-SpoolerOnDC' {
     BeforeEach {
-        Mock Get-ADDomain -ModuleName LabCommon { $script:Domain }
+        Mock Get-ADDomain -ModuleName LabCommon { $global:LabTestDomain }
         Mock Write-LabChange {}
         Mock Stop-Service {}
         Mock Set-Service {}
@@ -106,7 +106,7 @@ Describe 'Disable-SpoolerOnDC' {
 
 Describe 'Get-StaleAccounts' {
     BeforeEach {
-        Mock Get-ADDomain -ModuleName LabCommon { $script:Domain }
+        Mock Get-ADDomain -ModuleName LabCommon { $global:LabTestDomain }
         Mock Write-LabChange {}
         Mock Disable-ADAccount {}
         Mock Get-ADUser {
@@ -134,8 +134,8 @@ Describe 'Get-StaleAccounts' {
 
 Describe 'Import-SecurityBaseline' {
     BeforeEach {
-        Mock Get-ADDomain -ModuleName LabCommon { $script:Domain }
-        Mock Get-ADDomain { $script:Domain }
+        Mock Get-ADDomain -ModuleName LabCommon { $global:LabTestDomain }
+        Mock Get-ADDomain { $global:LabTestDomain }
         Mock Write-LabChange {}
         Mock Import-GPO {}
         Mock New-GPLink {}

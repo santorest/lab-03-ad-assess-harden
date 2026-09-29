@@ -11,7 +11,8 @@
 param([switch]$Force)
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
-Import-Module (Join-Path (Split-Path $PSScriptRoot -Parent) 'LabCommon.psm1') -Force
+# Load the shared module once; re-importing would reset it (and any test mocks attached to it).
+if (-not (Get-Module LabCommon)) { Import-Module (Join-Path (Split-Path $PSScriptRoot -Parent) 'LabCommon.psm1') }
 Import-LabAdModule
 Assert-LabDomain -Force:$Force
 

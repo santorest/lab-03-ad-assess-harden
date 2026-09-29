@@ -36,10 +36,10 @@ Describe 'New-LabDomainStructure' {
         }
 
         It 'creates the parent OU before its children' {
-            $script:order = @()
-            Mock New-ADOrganizationalUnit { $script:order += "OU=$Name,$Path" }
+            $global:LabTestOrder = @()
+            Mock New-ADOrganizationalUnit { $global:LabTestOrder += "OU=$Name,$Path" }
             & $script:Build -UserCount 1
-            $script:order.IndexOf('OU=Corp,DC=corp,DC=internal') | Should -BeLessThan $script:order.IndexOf('OU=Finance,OU=Corp,DC=corp,DC=internal')
+            $global:LabTestOrder.IndexOf('OU=Corp,DC=corp,DC=internal') | Should -BeLessThan $global:LabTestOrder.IndexOf('OU=Finance,OU=Corp,DC=corp,DC=internal')
         }
 
         It 'changes nothing with -WhatIf' {

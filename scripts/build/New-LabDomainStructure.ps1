@@ -17,7 +17,8 @@ param(
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
-Import-Module (Join-Path (Split-Path $PSScriptRoot -Parent) 'LabCommon.psm1') -Force
+# Load the shared module once; re-importing would reset it (and any test mocks attached to it).
+if (-not (Get-Module LabCommon)) { Import-Module (Join-Path (Split-Path $PSScriptRoot -Parent) 'LabCommon.psm1') }
 
 Import-LabAdModule
 Assert-LabDomain -Force:$Force
@@ -36,7 +37,7 @@ $groups = @('GG-Finance', 'GG-Operations', 'GG-Management', 'GG-Helpdesk')
 $firstNames = @('Ana', 'Luis', 'Marta', 'Jorge', 'Sofia', 'Diego', 'Laura', 'Pablo', 'Elena', 'Andres')
 $lastNames = @('Rivera', 'Gomez', 'Torres', 'Vargas', 'Rojas', 'Castro')
 
-function New-RandomSecureString {
+function Get-RandomSecureString {
     [CmdletBinding()]
     [OutputType([securestring])]
     param([int]$Length = 24)
@@ -82,7 +83,7 @@ for ($i = 0; $i -lt $UserCount; $i++) {
             New-ADUser -Name "$first $last $i" -GivenName $first -Surname $last -SamAccountName $sam `
                 -UserPrincipalName "$sam@$(Get-LabDomainName)" -Department $department `
                 -Path "OU=Users,OU=$department,OU=Corp,$domainDn" `
-                -AccountPassword (New-RandomSecureString) -ChangePasswordAtLogon $true -Enabled $true
+                -AccountPassword (Get-RandomSecureString) -ChangePasswordAtLogon $true -Enabled $true
             Add-ADGroupMember -Identity "GG-$department" -Members $sam
             Write-LabChange -Action 'CreateUser' -Target $sam -Detail $department
         }

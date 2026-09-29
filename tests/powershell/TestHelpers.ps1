@@ -1,20 +1,50 @@
-# Stand-ins for the RSAT ActiveDirectory / GroupPolicy cmdlets so tests run on machines without them.
-# Pester can only mock commands that exist; these do nothing unless a test mocks them.
-$adCommands = @(
-    'Get-ADDomain', 'Get-ADOrganizationalUnit', 'New-ADOrganizationalUnit', 'Get-ADGroup', 'New-ADGroup',
-    'Get-ADGroupMember', 'Add-ADGroupMember', 'Remove-ADGroupMember', 'Get-ADUser', 'New-ADUser', 'Set-ADUser',
-    'Disable-ADAccount', 'Get-ADComputer', 'Get-ADServiceAccount', 'New-ADServiceAccount', 'Get-KdsRootKey',
-    'Add-KdsRootKey', 'Get-ADDefaultDomainPasswordPolicy', 'Set-ADDefaultDomainPasswordPolicy',
-    'Get-ADFineGrainedPasswordPolicy', 'New-ADFineGrainedPasswordPolicy', 'Add-ADFineGrainedPasswordPolicySubject',
-    'Get-GPO', 'New-GPO', 'New-GPLink', 'Import-GPO', 'Get-GPRegistryValue', 'Set-GPRegistryValue',
-    'Update-LapsADSchema', 'Set-LapsADComputerSelfPermission', 'Set-LapsADReadPasswordPermission',
-    'Get-ItemProperty', 'Get-Service', 'Stop-Service', 'Set-Service', 'Get-SmbServerConfiguration',
-    'Set-SmbServerConfiguration', 'Get-ADObject', 'Set-ADObject', 'Get-GPInheritance'
-)
-foreach ($name in $adCommands) {
-    if (-not (Get-Command $name -ErrorAction SilentlyContinue)) {
-        Set-Item -Path "function:global:$name" -Value { param() }
-    }
+# Stand-ins for the ActiveDirectory, GroupPolicy and LAPS cmdlets.
+#
+# They are ALWAYS defined as global functions, so they shadow the real cmdlets even on a machine with RSAT
+# installed: tests can never reach a real domain. Each declares the parameters the scripts pass, so Pester
+# ParameterFilters and mock bodies can read them by name. They do nothing unless a test mocks them.
+$stubs = [ordered]@{
+    'Get-ADDomain'                          = 'Identity', 'Server'
+    'Get-ADOrganizationalUnit'              = 'Filter', 'Identity'
+    'New-ADOrganizationalUnit'              = 'Name', 'Path', 'ProtectedFromAccidentalDeletion'
+    'Get-ADGroup'                           = 'Filter', 'Identity', 'Properties'
+    'New-ADGroup'                           = 'Name', 'GroupScope', 'GroupCategory', 'Path'
+    'Get-ADGroupMember'                     = 'Identity'
+    'Add-ADGroupMember'                     = 'Identity', 'Members'
+    'Remove-ADGroupMember'                  = 'Identity', 'Members'
+    'Get-ADUser'                            = 'Filter', 'Identity', 'Properties'
+    'New-ADUser'                            = 'Name', 'GivenName', 'Surname', 'SamAccountName', 'UserPrincipalName',
+                                              'Department', 'Path', 'AccountPassword', 'ChangePasswordAtLogon', 'Enabled'
+    'Disable-ADAccount'                     = 'Identity'
+    'Get-ADComputer'                        = 'Filter', 'Identity', 'Properties'
+    'Get-ADObject'                          = 'Identity', 'SearchBase', 'Filter', 'Properties'
+    'Set-ADObject'                          = 'Identity', 'Replace'
+    'Get-ADServiceAccount'                  = 'Filter', 'Identity'
+    'New-ADServiceAccount'                  = 'Name', 'DNSHostName', 'PrincipalsAllowedToRetrieveManagedPassword', 'Path'
+    'Get-KdsRootKey'                        = @()
+    'Add-KdsRootKey'                        = 'EffectiveTime'
+    'Get-ADFineGrainedPasswordPolicy'       = 'Filter', 'Identity', 'Properties'
+    'New-ADFineGrainedPasswordPolicy'       = 'Name', 'Precedence', 'MinPasswordLength', 'ComplexityEnabled',
+                                              'LockoutThreshold', 'LockoutDuration', 'LockoutObservationWindow', '[switch]PassThru'
+    'Add-ADFineGrainedPasswordPolicySubject' = 'Identity', 'Subjects'
+    'Get-GPO'                               = 'Name', 'Guid'
+    'New-GPO'                               = 'Name', 'Comment'
+    'Import-GPO'                            = 'BackupId', 'TargetName', 'Path', '[switch]CreateIfNeeded'
+    'Get-GPRegistryValue'                   = 'Name', 'Key', 'ValueName'
+    'Set-GPRegistryValue'                   = 'Name', 'Key', 'ValueName', 'Type', 'Value'
+    'Get-GPInheritance'                     = 'Target'
+    'New-GPLink'                            = 'Name', 'Target', 'Order'
+    'Set-GPLink'                            = 'Name', 'Target', 'Order'
+    'Update-LapsADSchema'                   = @()
+    'Set-LapsADComputerSelfPermission'      = 'Identity'
+    'Set-LapsADReadPasswordPermission'      = 'Identity', 'AllowedPrincipals'
+}
+foreach ($name in $stubs.Keys) {
+    # '[switch]Name' declares a switch parameter; anything else is a normal (untyped) parameter.
+    $params = ($stubs[$name] | ForEach-Object { if ($_ -like '`[switch`]*') { '[switch]$' + $_.Substring(8) } else { '$' + $_ } }) -join ', '
+    # SupportsShouldProcess lets callers pass -Confirm:$false / -WhatIf like the real cmdlets accept.
+    $body = "[CmdletBinding(SupportsShouldProcess)] param($params)"
+    Set-Item -Path "function:global:$name" -Value ([scriptblock]::Create($body))
 }
 
 $script:RepoRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent

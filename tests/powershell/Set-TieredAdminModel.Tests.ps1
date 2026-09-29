@@ -1,7 +1,7 @@
 BeforeAll {
     . (Join-Path $PSScriptRoot 'TestHelpers.ps1')
     $script:Target = Join-Path $script:ScriptsDir 'harden\Set-TieredAdminModel.ps1'
-    $script:Sid = [System.Security.Principal.SecurityIdentifier]'S-1-5-21-1-2-3-512'
+    $global:LabTestSid = [System.Security.Principal.SecurityIdentifier]'S-1-5-21-1-2-3-512'
 }
 
 Describe 'Set-TieredAdminModel' {
@@ -30,7 +30,7 @@ Describe 'Set-TieredAdminModel' {
     }
 
     It 'changes nothing with -WhatIf' {
-        Mock Get-ADGroup { param($Filter, $Identity) if ($Filter) { $null } else { [pscustomobject]@{ SID = $script:Sid } } }
+        Mock Get-ADGroup { param($Filter, $Identity) if ($Filter) { $null } else { [pscustomobject]@{ SID = $global:LabTestSid } } }
         Mock Get-GPO { $null }
         & $script:Target -WhatIf
         Should -Invoke New-ADGroup -Times 0 -Exactly
@@ -40,7 +40,7 @@ Describe 'Set-TieredAdminModel' {
     }
 
     It 'creates the three tier groups, delegates reset on the 3 user OUs and links the GPO' {
-        Mock Get-ADGroup { param($Filter, $Identity) if ($Filter) { $null } else { [pscustomobject]@{ SID = $script:Sid } } }
+        Mock Get-ADGroup { param($Filter, $Identity) if ($Filter) { $null } else { [pscustomobject]@{ SID = $global:LabTestSid } } }
         Mock Get-GPO { $null }
         & $script:Target
         Should -Invoke New-ADGroup -Times 3 -Exactly
@@ -49,7 +49,7 @@ Describe 'Set-TieredAdminModel' {
     }
 
     It 'writes deny-logon rights for the Tier 0 SIDs into the GPO security template' {
-        Mock Get-ADGroup { param($Filter, $Identity) if ($Filter) { 'exists' } else { [pscustomobject]@{ SID = $script:Sid } } }
+        Mock Get-ADGroup { param($Filter, $Identity) if ($Filter) { 'exists' } else { [pscustomobject]@{ SID = $global:LabTestSid } } }
         Mock Get-GPO { [pscustomobject]@{ Id = [guid]'11111111-2222-3333-4444-555555555555' } }
         & $script:Target
         Should -Invoke Set-Content -Times 1 -Exactly -ParameterFilter {
