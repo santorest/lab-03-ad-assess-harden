@@ -85,13 +85,20 @@ def _change(before: int, after: int) -> str:
     return f"+{diff}" if diff > 0 else f"−{abs(diff)}"
 
 
-def table(before: Scores | None, after: Scores | None) -> str:
-    lines = ["| Metric | Before | After | Change |", "|---|---|---|---|"]
+def rows(before: Scores | None, after: Scores | None) -> list[tuple[str, str, str, str]]:
+    """(metric, before, after, change) as display strings; "Pending" wherever an export is missing."""
+    out = []
     for label, attr, _higher in METRICS:
         b = getattr(before, attr) if before else None
         a = getattr(after, attr) if after else None
         change = _change(b, a) if b is not None and a is not None else "Pending"
-        lines.append(f"| {label} | {'Pending' if b is None else b} | {'Pending' if a is None else a} | {change} |")
+        out.append((label, "Pending" if b is None else str(b), "Pending" if a is None else str(a), change))
+    return out
+
+
+def table(before: Scores | None, after: Scores | None) -> str:
+    lines = ["| Metric | Before | After | Change |", "|---|---|---|---|"]
+    lines += [f"| {m} | {b} | {a} | {c} |" for m, b, a, c in rows(before, after)]
     return "\n".join(lines) + "\n"
 
 
