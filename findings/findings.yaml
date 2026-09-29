@@ -1,0 +1,113 @@
+# Findings register — source of truth for the findings table and the assessment report (python -m adlab.report).
+# Every finding starts "open". Evidence says what the audit tools are EXPECTED to show; replace it with what they
+# actually showed after the baseline scan. A finding becomes "fixed" only with verified_by (e.g. the after-scan).
+- id: F01
+  title: Service account is a member of Domain Admins
+  weakness_ref: W01
+  severity: critical
+  evidence: "Expected: PingCastle privileged-group rules; BloodHound shows svc-app as a path to Domain Admins"
+  impact: Anyone who compromises the application or its host controls the whole domain.
+  remediation: Replace the account with a group-managed service account (gMSA) that holds only the rights the app needs.
+  script: scripts/harden/Convert-ServiceAccountToGmsa.ps1
+  status: open
+  verified_by: ""
+- id: F02
+  title: Service account password never expires and is years old
+  weakness_ref: W02
+  severity: high
+  evidence: "Expected: PingCastle stale/privileged rules for passwords that never expire"
+  impact: A leaked or guessed password stays valid indefinitely.
+  remediation: gMSA passwords are 120 characters and rotated automatically by the domain.
+  script: scripts/harden/Convert-ServiceAccountToGmsa.ps1
+  status: open
+  verified_by: ""
+- id: F03
+  title: Same local Administrator password on every machine (no LAPS)
+  weakness_ref: W03
+  severity: high
+  evidence: "Expected: PingCastle LAPS rule; Policy Analyzer shows no LAPS policy"
+  impact: One stolen local password gives administrator access to every workstation and server.
+  remediation: Deploy Windows LAPS so each machine has a unique, rotated password stored in AD.
+  script: scripts/harden/Enable-WindowsLaps.ps1
+  status: open
+  verified_by: ""
+- id: F04
+  title: SMBv1 enabled on the file server
+  weakness_ref: W04
+  severity: high
+  evidence: "Expected: PingCastle SMBv1 rule for app01"
+  impact: An obsolete protocol with known critical vulnerabilities and no modern protections.
+  remediation: Disable SMBv1 and require SMB signing.
+  script: scripts/harden/Disable-LegacyProtocols.ps1
+  status: open
+  verified_by: ""
+- id: F05
+  title: NTLMv1 and LM authentication allowed
+  weakness_ref: W05
+  severity: high
+  evidence: "Expected: PingCastle NTLMv1 rule; Policy Analyzer LmCompatibilityLevel below 5"
+  impact: Captured authentication exchanges can be cracked or relayed easily.
+  remediation: Set LmCompatibilityLevel to 5 (NTLMv2 only, refuse LM and NTLM).
+  script: scripts/harden/Disable-LegacyProtocols.ps1
+  status: open
+  verified_by: ""
+- id: F06
+  title: LDAP signing and channel binding not required
+  weakness_ref: W06
+  severity: medium
+  evidence: "Expected: PingCastle LDAP signing / channel binding rules"
+  impact: LDAP traffic to the domain controller can be tampered with or relayed.
+  remediation: Require LDAP server signing and always enforce channel binding.
+  script: scripts/harden/Set-LdapSigning.ps1
+  status: open
+  verified_by: ""
+- id: F07
+  title: Helpdesk group can reset passwords of administrator accounts
+  weakness_ref: W07
+  severity: critical
+  evidence: "Expected: BloodHound shows Helpdesk → ForceChangePassword → Domain Admin member"
+  impact: A compromised helpdesk account becomes a domain administrator in one step.
+  remediation: Remove the delegation from the Admin OU; delegate helpdesk rights only on user OUs.
+  script: scripts/harden/Set-TieredAdminModel.ps1
+  status: open
+  verified_by: ""
+- id: F08
+  title: Stale enabled user and computer accounts
+  weakness_ref: W08
+  severity: medium
+  evidence: "Expected: PingCastle stale-objects rules (inactive > 90 days)"
+  impact: Forgotten accounts are unmonitored entry points.
+  remediation: Review, then disable accounts inactive for more than 90 days.
+  script: scripts/harden/Get-StaleAccounts.ps1
+  status: open
+  verified_by: ""
+- id: F09
+  title: Domain administrators log on to workstations (no tiering)
+  weakness_ref: W09
+  severity: critical
+  evidence: "Expected: BloodHound sessions of Domain Admins on ws01/ws02"
+  impact: Compromising any workstation can expose domain-admin credentials.
+  remediation: Tiered administration with separate admin accounts and logon restrictions per tier.
+  script: scripts/harden/Set-TieredAdminModel.ps1
+  status: open
+  verified_by: ""
+- id: F10
+  title: Weak domain password and lockout policy
+  weakness_ref: W10
+  severity: medium
+  evidence: "Expected: PingCastle password-policy rules; Policy Analyzer minimum length below baseline"
+  impact: Short passwords and no lockout make guessing attacks practical.
+  remediation: Minimum length 14, lockout after 10 attempts, stricter fine-grained policy for administrators.
+  script: scripts/harden/Set-PasswordPolicy.ps1
+  status: open
+  verified_by: ""
+- id: F11
+  title: Print Spooler running on the domain controller
+  weakness_ref: W11
+  severity: high
+  evidence: "Expected: PingCastle spooler-on-DC rule"
+  impact: A service with a history of critical vulnerabilities, exposed on the most sensitive server.
+  remediation: Stop and disable the Print Spooler on domain controllers.
+  script: scripts/harden/Disable-SpoolerOnDC.ps1
+  status: open
+  verified_by: ""
