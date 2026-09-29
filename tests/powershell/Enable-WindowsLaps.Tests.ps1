@@ -1,6 +1,7 @@
 BeforeAll {
     . (Join-Path $PSScriptRoot 'TestHelpers.ps1')
     $script:Target = Join-Path $script:ScriptsDir 'harden\Enable-WindowsLaps.ps1'
+    $global:LabTestSid = [System.Security.Principal.SecurityIdentifier]'S-1-5-21-1-2-3-1105'
 }
 
 Describe 'Enable-WindowsLaps' {
@@ -8,29 +9,39 @@ Describe 'Enable-WindowsLaps' {
         $domain = [pscustomobject]@{ DNSRoot = 'corp.internal'; DistinguishedName = 'DC=corp,DC=internal'; SubordinateReferences = @() }
         Mock Get-ADDomain -ModuleName LabCommon { $domain }
         Mock Get-ADDomain { $domain }
+        Mock Get-ADGroup { [pscustomobject]@{ SID = $global:LabTestSid } }
         Mock Write-LabChange {}
         Mock Update-LapsADSchema {}
         Mock Set-LapsADComputerSelfPermission {}
         Mock Set-LapsADReadPasswordPermission {}
-        Mock New-GPO { [pscustomobject]@{ DisplayName = 'LAB-Windows-LAPS'; Id = [guid]::NewGuid() } }
-        Mock Set-GPRegistryValue {}
-        Mock New-GPLink {}
+        Mock Set-LabGpoRegistryPolicy {}
     }
 
     Context 'no LAPS yet' {
-        BeforeEach {
-            Mock Get-ADObject { $null }
-            Mock Get-GPO { $null }
-            Mock Get-GPRegistryValue { $null }
-            Mock Get-GPInheritance { [pscustomobject]@{ GpoLinks = @() } }
-        }
-        It 'extends the schema, creates the GPO with five settings and links it to the 3 computer OUs' {
+        BeforeEach { Mock Get-ADObject { $null } }
+
+        It 'extends the schema and configures the LAPS GPO on the 3 computer OUs' {
             & $script:Target
             Should -Invoke Update-LapsADSchema -Times 1 -Exactly
-            Should -Invoke New-GPO -Times 1 -Exactly
-            Should -Invoke Set-GPRegistryValue -Times 5 -Exactly
-            Should -Invoke Set-GPRegistryValue -Times 1 -Exactly -ParameterFilter { $ValueName -eq 'PasswordLength' -and $Value -eq 20 }
-            Should -Invoke New-GPLink -Times 3 -Exactly
+            Should -Invoke Set-LabGpoRegistryPolicy -Times 1 -Exactly -ParameterFilter {
+                $GpoName -eq 'LAB-Windows-LAPS' -and @($LinkTargets).Count -eq 3 -and
+                ($Settings | Where-Object ValueName -eq 'PasswordLength').Value -eq 20
+            }
+        }
+        It 'uses the Windows LAPS group-policy key (not the MDM/CSP key)' {
+            & $script:Target
+            Should -Invoke Set-LabGpoRegistryPolicy -Times 1 -Exactly -ParameterFilter {
+                -not ($Settings | Where-Object Key -ne 'HKLM\Software\Microsoft\Windows\CurrentVersion\Policies\LAPS')
+            }
+        }
+        It 'encrypts the password so only GG-Tier2-Admins can decrypt it' {
+            & $script:Target
+            Should -Invoke Set-LabGpoRegistryPolicy -Times 1 -Exactly -ParameterFilter {
+                $p = $Settings | Where-Object ValueName -eq 'ADPasswordEncryptionPrincipal'
+                ($Settings | Where-Object ValueName -eq 'ADPasswordEncryptionEnabled').Value -eq 1 -and
+                $p.Type -eq 'String' -and $p.Value -eq 'S-1-5-21-1-2-3-1105'
+            }
+            Should -Invoke Get-ADGroup -ParameterFilter { $Identity -eq 'GG-Tier2-Admins' }
         }
         It 'lets only Tier 2 admins read workstation passwords' {
             & $script:Target
@@ -39,23 +50,14 @@ Describe 'Enable-WindowsLaps' {
         It 'changes nothing with -WhatIf' {
             & $script:Target -WhatIf
             Should -Invoke Update-LapsADSchema -Times 0 -Exactly
-            Should -Invoke New-GPO -Times 0 -Exactly
-            Should -Invoke New-GPLink -Times 0 -Exactly
+            Should -Invoke Set-LapsADReadPasswordPermission -Times 0 -Exactly
+            Should -Invoke Set-LabGpoRegistryPolicy -Times 1 -Exactly -ParameterFilter { $WhatIf }
         }
     }
 
-    It 'creates and links nothing new when LAPS is already deployed (idempotent)' {
+    It 'does not extend the schema again when LAPS is already deployed' {
         Mock Get-ADObject { 'schema-attribute' }
-        Mock Get-GPO { [pscustomobject]@{ DisplayName = 'LAB-Windows-LAPS'; Id = [guid]::NewGuid() } }
-        Mock Get-GPRegistryValue {
-            $v = @{ BackupDirectory = 2; ADPasswordEncryptionEnabled = 1; PasswordComplexity = 4; PasswordLength = 20; PasswordAgeDays = 30 }
-            [pscustomobject]@{ Value = $v[$ValueName] }
-        }
-        Mock Get-GPInheritance { [pscustomobject]@{ GpoLinks = @([pscustomobject]@{ DisplayName = 'LAB-Windows-LAPS' }) } }
         & $script:Target
         Should -Invoke Update-LapsADSchema -Times 0 -Exactly
-        Should -Invoke New-GPO -Times 0 -Exactly
-        Should -Invoke Set-GPRegistryValue -Times 0 -Exactly
-        Should -Invoke New-GPLink -Times 0 -Exactly
     }
 }

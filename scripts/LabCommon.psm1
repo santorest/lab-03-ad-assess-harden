@@ -62,7 +62,7 @@ function Import-LabAdModule {
 function Set-LabGpoRegistryPolicy {
     <#
     .SYNOPSIS
-        Ensures a GPO exists, carries the given DWORD registry settings and is linked to the given targets.
+        Ensures a GPO exists, carries the given registry settings and is linked to the given targets.
         Only missing or different values are written; existing links are kept. Returns nothing.
         Callers must pass -WhatIf:$WhatIfPreference: preference variables don't flow into module functions.
     #>
@@ -70,7 +70,7 @@ function Set-LabGpoRegistryPolicy {
     param(
         [Parameter(Mandatory)][string]$GpoName,
         [Parameter(Mandatory)][string]$Comment,
-        # Each item: @{ Key = 'HKLM\...'; ValueName = '...'; Value = <int> }
+        # Each item: @{ Key = 'HKLM\...'; ValueName = '...'; Value = <int>; Type = 'DWord' (default) or 'String' }
         [Parameter(Mandatory)][hashtable[]]$Settings,
         [Parameter(Mandatory)][string[]]$LinkTargets
     )
@@ -84,7 +84,8 @@ function Set-LabGpoRegistryPolicy {
         $current = Get-GPRegistryValue -Name $GpoName -Key $s.Key -ValueName $s.ValueName -ErrorAction SilentlyContinue
         if (-not $current -or $current.Value -ne $s.Value) {
             if ($PSCmdlet.ShouldProcess("$GpoName $($s.ValueName)", "Set to $($s.Value)")) {
-                Set-GPRegistryValue -Name $GpoName -Key $s.Key -ValueName $s.ValueName -Type DWord -Value $s.Value | Out-Null
+                $type = if ($s.ContainsKey('Type')) { $s.Type } else { 'DWord' }
+                Set-GPRegistryValue -Name $GpoName -Key $s.Key -ValueName $s.ValueName -Type $type -Value $s.Value | Out-Null
                 Write-LabChange -Action 'SetGpoValue' -Target $GpoName -Detail "$($s.ValueName)=$($s.Value)"
             }
         }

@@ -129,3 +129,25 @@ Describe 'Test stand-ins' {
         $missing | Should -BeNullOrEmpty
     }
 }
+
+Describe 'Set-LabGpoRegistryPolicy' {
+    BeforeEach {
+        Mock Get-GPO -ModuleName LabCommon { [pscustomobject]@{ DisplayName = 'LAB-Test' } }
+        Mock Get-GPRegistryValue -ModuleName LabCommon { $null }
+        Mock Set-GPRegistryValue -ModuleName LabCommon {}
+        Mock Get-GPInheritance -ModuleName LabCommon { [pscustomobject]@{ GpoLinks = @([pscustomobject]@{ DisplayName = 'LAB-Test' }) } }
+        Mock Write-LabChange -ModuleName LabCommon {}
+    }
+
+    It 'writes DWORD values by default and string values when the setting says Type = String' {
+        $settings = @(
+            @{ Key = 'HKLM\Software\Test'; ValueName = 'Number'; Value = 5 }
+            @{ Key = 'HKLM\Software\Test'; ValueName = 'Text'; Value = 'S-1-5-21-1-2-3-1105'; Type = 'String' }
+        )
+        Set-LabGpoRegistryPolicy -GpoName 'LAB-Test' -Comment 'x' -Settings $settings -LinkTargets 'OU=A'
+        Should -Invoke Set-GPRegistryValue -ModuleName LabCommon -Times 1 -Exactly -ParameterFilter { $ValueName -eq 'Number' -and $Type -eq 'DWord' }
+        Should -Invoke Set-GPRegistryValue -ModuleName LabCommon -Times 1 -Exactly -ParameterFilter {
+            $ValueName -eq 'Text' -and $Type -eq 'String' -and $Value -eq 'S-1-5-21-1-2-3-1105'
+        }
+    }
+}
