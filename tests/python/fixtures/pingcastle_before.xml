@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Synthetic TEST FIXTURE shaped like a PingCastle health-check export. Not a real scan result. -->
+<HealthcheckData>
+  <GenerationDate>2026-10-01T09:00:00</GenerationDate>
+  <DomainFQDN>corp.internal</DomainFQDN>
+  <GlobalScore>75</GlobalScore>
+  <StaleObjectsScore>60</StaleObjectsScore>
+  <PrivilegiedGroupScore>55</PrivilegiedGroupScore>
+  <TrustScore>0</TrustScore>
+  <AnomalyScore>40</AnomalyScore>
+  <MaturityLevel>1</MaturityLevel>
+</HealthcheckData>
