@@ -9,7 +9,7 @@ $adCommands = @(
     'Get-GPO', 'New-GPO', 'New-GPLink', 'Import-GPO', 'Get-GPRegistryValue', 'Set-GPRegistryValue',
     'Update-LapsADSchema', 'Set-LapsADComputerSelfPermission', 'Set-LapsADReadPasswordPermission',
     'Get-ItemProperty', 'Get-Service', 'Stop-Service', 'Set-Service', 'Get-SmbServerConfiguration',
-    'Set-SmbServerConfiguration', 'Get-ADObject', 'Set-ADObject'
+    'Set-SmbServerConfiguration', 'Get-ADObject', 'Set-ADObject', 'Get-GPInheritance'
 )
 foreach ($name in $adCommands) {
     if (-not (Get-Command $name -ErrorAction SilentlyContinue)) {
