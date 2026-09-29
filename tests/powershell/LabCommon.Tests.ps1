@@ -150,4 +150,32 @@ Describe 'Set-LabGpoRegistryPolicy' {
             $ValueName -eq 'Text' -and $Type -eq 'String' -and $Value -eq 'S-1-5-21-1-2-3-1105'
         }
     }
+
+    It 'writes security options into the GPO security template' {
+        Mock Get-GPO -ModuleName LabCommon { [pscustomobject]@{ DisplayName = 'LAB-Test'; Id = [guid]'11111111-2222-3333-4444-555555555555' } }
+        Mock Set-LabGpoSecurityTemplate -ModuleName LabCommon {}
+        $options = [ordered]@{ 'Registry Values' = [ordered]@{ 'MACHINE\System\CurrentControlSet\Control\Lsa\LmCompatibilityLevel' = '4,5' } }
+        Set-LabGpoRegistryPolicy -GpoName 'LAB-Test' -Comment 'x' -SecurityTemplate $options -LinkTargets 'OU=A'
+        Should -Invoke Set-LabGpoSecurityTemplate -ModuleName LabCommon -Times 1 -Exactly -ParameterFilter {
+            $GpoId -eq [guid]'11111111-2222-3333-4444-555555555555' -and
+            $Sections['Registry Values']['MACHINE\System\CurrentControlSet\Control\Lsa\LmCompatibilityLevel'] -eq '4,5'
+        }
+        Should -Invoke Set-GPRegistryValue -ModuleName LabCommon -Times 0 -Exactly
+    }
+
+    It 'with -LinkFirst links a new GPO at order 1 so it outranks the default policies' {
+        Mock Get-GPInheritance -ModuleName LabCommon { [pscustomobject]@{ GpoLinks = @() } }
+        Mock New-GPLink -ModuleName LabCommon {}
+        Set-LabGpoRegistryPolicy -GpoName 'LAB-Test' -Comment 'x' -Settings @(@{ Key = 'HKLM\X'; ValueName = 'A'; Value = 1 }) -LinkTargets 'OU=A' -LinkFirst
+        Should -Invoke New-GPLink -ModuleName LabCommon -Times 1 -Exactly -ParameterFilter { $Order -eq 1 }
+    }
+
+    It 'with -LinkFirst moves an existing lower link to order 1' {
+        Mock Get-GPInheritance -ModuleName LabCommon { [pscustomobject]@{ GpoLinks = @([pscustomobject]@{ DisplayName = 'LAB-Test'; Order = 2 }) } }
+        Mock Set-GPLink -ModuleName LabCommon {}
+        Mock New-GPLink -ModuleName LabCommon {}
+        Set-LabGpoRegistryPolicy -GpoName 'LAB-Test' -Comment 'x' -Settings @(@{ Key = 'HKLM\X'; ValueName = 'A'; Value = 1 }) -LinkTargets 'OU=A' -LinkFirst
+        Should -Invoke Set-GPLink -ModuleName LabCommon -Times 1 -Exactly -ParameterFilter { $Name -eq 'LAB-Test' -and $Order -eq 1 }
+        Should -Invoke New-GPLink -ModuleName LabCommon -Times 0 -Exactly
+    }
 }

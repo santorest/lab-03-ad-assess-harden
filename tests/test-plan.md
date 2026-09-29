@@ -15,6 +15,7 @@
 | A10 | After `gpupdate /force` on dc01, `Get-ADDefaultDomainPasswordPolicy` shows length 14, lockout 10 / 15 min | Set-PasswordPolicy.ps1 | | screenshot |
 | A11 | On ws01, `reg query HKLM\Software\Microsoft\Windows\CurrentVersion\Policies\LAPS` lists the six LAPS settings | Enable-WindowsLaps.ps1 | | screenshot |
 | A12 | `Get-LapsADPassword ws01 -AsPlainText` works for a Tier 2 admin and fails for a Tier 1 admin; for app01 the reverse | Enable-WindowsLaps.ps1 | | screenshot |
+| A13 | `gpresult /h` on dc01 shows LAB-LDAP-Signing and LAB-Legacy-Protocols as the winning GPO for *LDAP server signing requirements* and *LAN Manager authentication level*; `reg query` shows LDAPServerIntegrity = 2 on dc01 and LmCompatibilityLevel = 5 on dc01 and ws01 | Set-LdapSigning.ps1, Disable-LegacyProtocols.ps1 | | screenshot |
 
 ## SIEM (docs/siem-checks.md)
 | # | Check | Result | Evidence |

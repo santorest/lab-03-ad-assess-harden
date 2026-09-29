@@ -64,6 +64,9 @@ function Set-LabGpoRegistryPolicy {
     .SYNOPSIS
         Ensures a GPO exists, carries the given registry settings and is linked to the given targets.
         Only missing or different values are written; existing links are kept. Returns nothing.
+        Security options (the Default Domain and Default Domain Controllers policies set them in their security
+        template) go in -SecurityTemplate, and -LinkFirst links at order 1: written as registry-policy values
+        they would be overridden by those defaults.
         Callers must pass -WhatIf:$WhatIfPreference: preference variables don't flow into module functions.
     #>
     [CmdletBinding(SupportsShouldProcess)]
@@ -71,8 +74,12 @@ function Set-LabGpoRegistryPolicy {
         [Parameter(Mandatory)][string]$GpoName,
         [Parameter(Mandatory)][string]$Comment,
         # Each item: @{ Key = 'HKLM\...'; ValueName = '...'; Value = <int>; Type = 'DWord' (default) or 'String' }
-        [Parameter(Mandatory)][hashtable[]]$Settings,
-        [Parameter(Mandatory)][string[]]$LinkTargets
+        [hashtable[]]$Settings = @(),
+        # GptTmpl.inf sections, e.g. @{ 'Registry Values' = @{ 'MACHINE\...\LmCompatibilityLevel' = '4,5' } }
+        [System.Collections.IDictionary]$SecurityTemplate,
+        [Parameter(Mandatory)][string[]]$LinkTargets,
+        # Link at order 1 (and move an existing link there) so the GPO wins over the default policies.
+        [switch]$LinkFirst
     )
     $gpo = Get-GPO -Name $GpoName -ErrorAction SilentlyContinue
     if (-not $gpo -and $PSCmdlet.ShouldProcess($GpoName, 'Create GPO')) {
@@ -80,6 +87,9 @@ function Set-LabGpoRegistryPolicy {
         Write-LabChange -Action 'CreateGpo' -Target $GpoName
     }
     if (-not $gpo) { return }
+    if ($SecurityTemplate) {
+        Set-LabGpoSecurityTemplate -GpoId $gpo.Id -Sections $SecurityTemplate -WhatIf:$WhatIfPreference
+    }
     foreach ($s in $Settings) {
         $current = Get-GPRegistryValue -Name $GpoName -Key $s.Key -ValueName $s.ValueName -ErrorAction SilentlyContinue
         if (-not $current -or $current.Value -ne $s.Value) {
@@ -91,10 +101,16 @@ function Set-LabGpoRegistryPolicy {
         }
     }
     foreach ($target in $LinkTargets) {
-        $linked = @((Get-GPInheritance -Target $target).GpoLinks | Where-Object { $_.DisplayName -eq $GpoName })
-        if (-not $linked -and $PSCmdlet.ShouldProcess($target, "Link $GpoName")) {
-            New-GPLink -Name $GpoName -Target $target | Out-Null
-            Write-LabChange -Action 'LinkGpo' -Target $target -Detail $GpoName
+        $link = @((Get-GPInheritance -Target $target).GpoLinks | Where-Object { $_.DisplayName -eq $GpoName }) | Select-Object -First 1
+        if (-not $link) {
+            if ($PSCmdlet.ShouldProcess($target, "Link $GpoName")) {
+                if ($LinkFirst) { New-GPLink -Name $GpoName -Target $target -Order 1 | Out-Null }
+                else { New-GPLink -Name $GpoName -Target $target | Out-Null }
+                Write-LabChange -Action 'LinkGpo' -Target $target -Detail $GpoName
+            }
+        } elseif ($LinkFirst -and $link.Order -ne 1 -and $PSCmdlet.ShouldProcess($target, "Move $GpoName link to order 1")) {
+            Set-GPLink -Name $GpoName -Target $target -Order 1 | Out-Null
+            Write-LabChange -Action 'LinkGpoFirst' -Target $target -Detail $GpoName
         }
     }
 }

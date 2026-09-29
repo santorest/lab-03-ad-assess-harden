@@ -4,9 +4,13 @@ BeforeAll {
     $global:LabTestDomain = [pscustomobject]@{ DNSRoot = 'corp.internal'; DistinguishedName = 'DC=corp,DC=internal' }
 }
 
-Describe 'GPO registry scripts (Disable-LegacyProtocols, Set-LdapSigning)' -ForEach @(
-    @{ Script = 'Disable-LegacyProtocols.ps1'; Gpo = 'LAB-Legacy-Protocols'; Values = 4; ExpectName = 'LmCompatibilityLevel'; ExpectValue = 5 }
-    @{ Script = 'Set-LdapSigning.ps1'; Gpo = 'LAB-LDAP-Signing'; Values = 2; ExpectName = 'LdapEnforceChannelBinding'; ExpectValue = 2 }
+Describe 'GPO scripts (Disable-LegacyProtocols, Set-LdapSigning)' -ForEach @(
+    # Security options go into the GPO security template (as the default GPOs set them), so they aren't
+    # overridden; only SMBv1, which is not a security option, stays a registry-policy value.
+    @{ Script = 'Disable-LegacyProtocols.ps1'; Gpo = 'LAB-Legacy-Protocols'; RegistryValues = 1; LinkTarget = 'DC=corp,DC=internal'
+       OptionName = 'MACHINE\System\CurrentControlSet\Control\Lsa\LmCompatibilityLevel'; OptionValue = '4,5' }
+    @{ Script = 'Set-LdapSigning.ps1'; Gpo = 'LAB-LDAP-Signing'; RegistryValues = 0; LinkTarget = 'OU=Domain Controllers,DC=corp,DC=internal'
+       OptionName = 'MACHINE\System\CurrentControlSet\Services\NTDS\Parameters\LDAPServerIntegrity'; OptionValue = '4,2' }
 ) {
     BeforeEach {
         Mock Get-ADDomain -ModuleName LabCommon { $global:LabTestDomain }
@@ -14,25 +18,30 @@ Describe 'GPO registry scripts (Disable-LegacyProtocols, Set-LdapSigning)' -ForE
         # The helper lives in LabCommon, so its cmdlets are mocked inside that module.
         Mock Write-LabChange -ModuleName LabCommon {}
         Mock Get-GPO -ModuleName LabCommon { $null }
-        Mock New-GPO -ModuleName LabCommon { [pscustomobject]@{ DisplayName = 'x' } }
+        Mock New-GPO -ModuleName LabCommon { [pscustomobject]@{ DisplayName = 'x'; Id = [guid]::NewGuid() } }
         Mock Get-GPRegistryValue -ModuleName LabCommon { $null }
         Mock Set-GPRegistryValue -ModuleName LabCommon {}
+        Mock Set-LabGpoSecurityTemplate -ModuleName LabCommon {}
         Mock Get-GPInheritance -ModuleName LabCommon { [pscustomobject]@{ GpoLinks = @() } }
         Mock New-GPLink -ModuleName LabCommon {}
     }
 
-    It '<Script> creates <Gpo> with its settings and links it' {
+    It '<Script> creates <Gpo>, writes its security options to the template and links it first' {
         & (Join-Path $script:Harden $Script)
         Should -Invoke New-GPO -ModuleName LabCommon -Times 1 -Exactly -ParameterFilter { $Name -eq $Gpo }
-        Should -Invoke Set-GPRegistryValue -ModuleName LabCommon -Times $Values -Exactly
-        Should -Invoke Set-GPRegistryValue -ModuleName LabCommon -Times 1 -Exactly -ParameterFilter { $ValueName -eq $ExpectName -and $Value -eq $ExpectValue }
-        Should -Invoke New-GPLink -ModuleName LabCommon -Times 1 -Exactly
+        Should -Invoke Set-GPRegistryValue -ModuleName LabCommon -Times $RegistryValues -Exactly
+        Should -Invoke Set-LabGpoSecurityTemplate -ModuleName LabCommon -Times 1 -Exactly -ParameterFilter {
+            $Sections['Registry Values'][$OptionName] -eq $OptionValue
+        }
+        # Order 1 outranks the Default Domain Policy (domain root) and Default Domain Controllers Policy.
+        Should -Invoke New-GPLink -ModuleName LabCommon -Times 1 -Exactly -ParameterFilter { $Target -eq $LinkTarget -and $Order -eq 1 }
     }
 
     It '<Script> changes nothing with -WhatIf (regression: -WhatIf must reach the LabCommon helper)' {
         & (Join-Path $script:Harden $Script) -WhatIf
         Should -Invoke New-GPO -ModuleName LabCommon -Times 0 -Exactly
         Should -Invoke Set-GPRegistryValue -ModuleName LabCommon -Times 0 -Exactly
+        Should -Invoke Set-LabGpoSecurityTemplate -ModuleName LabCommon -Times 0 -Exactly -ParameterFilter { -not $WhatIf }
         Should -Invoke New-GPLink -ModuleName LabCommon -Times 0 -Exactly
     }
 
