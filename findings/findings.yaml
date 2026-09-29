@@ -64,9 +64,9 @@
 - id: F07
   title: Helpdesk group can reset passwords of administrator accounts
   weakness_ref: W07
-  severity: critical
-  evidence: "Expected: BloodHound shows Helpdesk → ForceChangePassword → Domain Admin member"
-  impact: A compromised helpdesk account becomes a domain administrator in one step.
+  severity: high
+  evidence: "Expected: BloodHound shows GG-Helpdesk → ForceChangePassword → adm.app → AdminTo → app01"
+  impact: A compromised helpdesk account takes over a Tier 1 admin account, and every server it administers, in one step.
   remediation: Remove the delegation from the Admin OU; delegate helpdesk rights only on user OUs.
   script: scripts/harden/Set-TieredAdminModel.ps1
   status: open

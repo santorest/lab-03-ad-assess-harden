@@ -103,9 +103,9 @@ bundle: "Published on the portfolio site with its SHA-256 checksum"
 
 - A catalogue of eleven weaknesses with why they're common, how to reproduce them and which tool flags them.
 - Nine hardening scripts plus a domain-build script: idempotent, `-WhatIf`-aware, logging every change and
-  refusing to run outside `corp.internal`. Each has Pester tests written for it, which have not run yet (they need Pester 5 in CI). The scripts
-  were exercised in Windows PowerShell
-  5.1 against stand-in AD cmdlets, which caught a bug where `-WhatIf` didn't reach a shared helper.
+  refusing to run outside `corp.internal`. Each has Pester 5 tests (61, passing in CI with PSScriptAnalyzer
+  clean) that run the scripts against stand-in AD cmdlets; they caught a bug where `-WhatIf` didn't reach a
+  shared helper.
 - A findings register that rejects "fixed" without proof, a PingCastle score parser, and a report generator
   that stays marked *Draft* until real before/after scans exist.
 
@@ -129,14 +129,19 @@ bundle: "Published on the portfolio site with its SHA-256 checksum"
   as `xcorp.internal`, before touching anything.
 - **Not everything fits the tidy cmdlets.** User-rights assignments (tiering's deny-logon rights) can't be set with
   the registry-based GPO cmdlets and need the GPO's security template; that script gets the most careful review.
+- **Stand-ins must cover everything.** Two AD cmdlets had no test stand-in; on a machine with the admin tools
+  installed the tests quietly called the real ones, and only CI, without them, failed. A test now checks that
+  every AD and Group Policy command the scripts use has a stand-in.
 - **"Fixed" needs proof.** The register refuses a fixed finding without `verified_by`, and the report stays a
   draft until the after-scan exists.
 
-**Open items before use:** a review of the scripts found issues to fix first — the Pester suite can't pass as
-written, the Tier 0 GPO version file goes to the wrong folder, some settings would be overridden by the default
-domain policies, and the LAPS settings need corrections. They are tracked for the next iteration.
+**Review fixes:** a review of the scripts found issues — the GPO version file in the wrong folder, security
+options that the default domain policies would override, the password policy set where the Default Domain
+Policy would revert it, the LAPS policy key and encryption, and member servers sharing the workstations' LAPS
+readers. They are fixed and covered by tests, and the Pester suite passes in CI. They have not run against a
+real domain yet: the [test plan](tests/test-plan.md) lists the checks for that.
 
-**Roadmap:** fix the open items and get the Pester suite passing in CI, build the lab, run the before/after assessments, publish the measured score change, and extend
+**Roadmap:** build the lab, run the before/after assessments, publish the measured score change, and extend
 with Active Directory Certificate Services hardening.
 
 ## 7. Reproduce it yourself

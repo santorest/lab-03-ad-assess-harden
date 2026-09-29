@@ -4,12 +4,12 @@
 | # | Step | Guide | Result | Evidence |
 |---|---|---|---|---|
 | A1 | PingCastle before-scan, score recorded | docs/assessment/01-pingcastle.md | | evidence/before/ |
-| A2 | BloodHound paths to Domain Admins recorded (expect W01, W07, W09) | docs/assessment/02-bloodhound.md | | evidence/before/ |
+| A2 | BloodHound paths recorded: to Domain Admins (expect W01, W09) and GG-Helpdesk → adm.app → app01 (W07) | docs/assessment/02-bloodhound.md | | evidence/before/ |
 | A3 | Policy Analyzer gaps vs WS2022 baseline recorded | docs/assessment/03-policy-analyzer.md | | evidence/before/ |
 | A4 | Every hardening script reviewed with -WhatIf, then applied | scripts/harden/ | | logs/changes.log |
 | A5 | Each script run a second time makes no change | scripts/harden/ | | logs/changes.log |
 | A6 | PingCastle after-scan, score lower | docs/assessment/01-pingcastle.md | | evidence/after/ |
-| A7 | BloodHound: no path to Domain Admins from W01/W07/W09 | docs/assessment/02-bloodhound.md | | evidence/after/ |
+| A7 | BloodHound: no path to Domain Admins from W01/W09, and no GG-Helpdesk control over adm.app (W07) | docs/assessment/02-bloodhound.md | | evidence/after/ |
 | A8 | `gpresult /r` on ws01 shows LAB-Tier0-Logon-Restrictions; a Domain Admin can't log on | Set-TieredAdminModel.ps1 | | screenshot |
 | A9 | GPO versions consistent: `Get-GPO LAB-Tier0-Logon-Restrictions` shows equal DS and SysVol computer versions; `GPT.INI` is at the GPO root | Set-TieredAdminModel.ps1 | | screenshot |
 | A10 | After `gpupdate /force` on dc01, `Get-ADDefaultDomainPasswordPolicy` shows length 14, lockout 10 / 15 min | Set-PasswordPolicy.ps1 | | screenshot |

@@ -4,9 +4,9 @@ Defensive-first Active Directory lab for a fictional 40-person company (`corp.in
 weaknesses, assessment with PingCastle, BloodHound CE and Microsoft's security baseline, hardening as
 PowerShell scripts, before/after scores and a generated assessment report.
 
-> **Work in progress:** the Pester tests for the PowerShell scripts are written but have not passed yet (their
-> first CI run is pending, and a review found fixes to make first). The Python tooling is tested in CI. See the
-> open items in the write-up's roadmap before using the scripts, even in a lab.
+> **Reference design:** the scripts and tooling pass their tests in CI (Pester 5, PSScriptAnalyzer, pytest), but
+> they have not been run against a real domain yet. Review each script with `-WhatIf` in a lab first, and see the
+> [test plan](tests/test-plan.md) for the checks to record.
 
 **Category:** Vulnerability Assessment & Pentesting · **Status:** reference design — ready to build
 
@@ -23,7 +23,7 @@ scripts/harden/                     one idempotent, -WhatIf-aware script per con
 findings/findings.yaml              findings register (drives the report)
 adlab/                              findings model, PingCastle score parser, report generator (Python)
 report/                             report template and generated report (HTML; PDF is git-ignored)
-tests/python, tests/powershell      pytest suite (CI) and Pester 5 suite (not yet passing)
+tests/python, tests/powershell      pytest suite and Pester 5 suite (both run in CI)
 evidence/                           tool exports (git-ignored until sanitized)
 ```
 

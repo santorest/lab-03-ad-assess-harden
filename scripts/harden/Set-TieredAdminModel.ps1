@@ -4,7 +4,7 @@
     Fixes W07/W09: tiered administration and least-privilege helpdesk delegation.
 .DESCRIPTION
     1. Creates tier admin groups GG-Tier0-Admins, GG-Tier1-Admins, GG-Tier2-Admins in the Admin tier OUs.
-    2. Removes any permission GG-Helpdesk holds on the Admin OU (the path to Domain Admins found by BloodHound).
+    2. Removes any permission GG-Helpdesk holds on the Admin OU (the helpdesk-to-admin path found by BloodHound).
     3. Grants GG-Helpdesk "reset password" only on the Corp user OUs.
     4. Creates and links the GPO "LAB-Tier0-Logon-Restrictions" to the Corp computer and Servers OUs: Tier 0 accounts
        (Domain Admins, Enterprise Admins, GG-Tier0-Admins) are denied interactive, RDP, batch and service logon

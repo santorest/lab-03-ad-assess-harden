@@ -78,9 +78,9 @@
 
 - Un catálogo de once debilidades con por qué son comunes, cómo reproducirlas y qué herramienta las detecta.
 - Nueve scripts de endurecimiento y uno de construcción del dominio: idempotentes, compatibles con `-WhatIf`,
-  que registran cada cambio y se niegan a ejecutarse fuera de `corp.internal`. Cada uno tiene pruebas Pester
-  escritas, que aún no se han ejecutado (requieren Pester 5 en CI). Los scripts se ejecutaron en Windows PowerShell 5.1 contra cmdlets de AD simulados, lo que detectó un error por el
-  que `-WhatIf` no llegaba a una función compartida.
+  que registran cada cambio y se niegan a ejecutarse fuera de `corp.internal`. Cada uno tiene pruebas Pester 5
+  (61, que pasan en CI junto con PSScriptAnalyzer sin hallazgos) que ejecutan los scripts contra cmdlets de AD
+  simulados; detectaron un error por el que `-WhatIf` no llegaba a una función compartida.
 - Un registro de hallazgos que rechaza "corregido" sin prueba, un analizador del puntaje de PingCastle y un
   generador de informes que se mantiene como *Borrador* hasta que existan escaneos reales de antes y después.
 
@@ -105,15 +105,21 @@
 - **No todo cabe en los cmdlets cómodos.** Las asignaciones de derechos de usuario (las denegaciones de inicio de
   sesión por nivel) no se pueden fijar con los cmdlets de GPO basados en registro y requieren la plantilla de
   seguridad de la GPO; ese script es el que más revisión necesita.
+- **Los sustitutos deben cubrirlo todo.** Dos cmdlets de AD no tenían sustituto de prueba; en un equipo con las
+  herramientas de administración instaladas las pruebas llamaban en silencio a los reales, y solo CI, sin ellas,
+  falló. Ahora una prueba verifica que cada comando de AD y de directivas de grupo que usan los scripts tenga
+  sustituto.
 - **"Corregido" necesita prueba.** El registro rechaza un hallazgo corregido sin `verified_by` y el informe sigue
   como borrador hasta que existe el escaneo final.
 
-**Pendientes antes de usarlo:** una revisión de los scripts encontró problemas que corregir primero: las pruebas
-Pester no pueden pasar tal como están, el archivo de versión de la GPO del Nivel 0 se escribe en la carpeta
-equivocada, algunos valores serían sobrescritos por las directivas predeterminadas del dominio y la configuración
-de LAPS necesita correcciones. Se atenderán en la siguiente iteración.
+**Correcciones de la revisión:** una revisión de los scripts encontró problemas: el archivo de versión de la GPO
+en la carpeta equivocada, opciones de seguridad que las directivas predeterminadas del dominio sobrescribirían,
+la directiva de contraseñas fijada donde la Default Domain Policy la revertiría, la clave y el cifrado de LAPS, y
+los servidores miembro compartiendo los lectores de LAPS de las estaciones. Están corregidos y cubiertos por
+pruebas, y las pruebas Pester pasan en CI. Aún no se han ejecutado contra un dominio real: el
+[plan de pruebas](tests/test-plan.md) lista las verificaciones para eso.
 
-**Hoja de ruta:** corregir los pendientes y lograr que las pruebas Pester pasen en CI, construir el laboratorio, hacer las evaluaciones de antes y después, publicar el cambio medido
+**Hoja de ruta:** construir el laboratorio, hacer las evaluaciones de antes y después, publicar el cambio medido
 del puntaje y ampliar con el endurecimiento de Active Directory Certificate Services.
 
 ## 7. Reprodúcelo tú mismo
