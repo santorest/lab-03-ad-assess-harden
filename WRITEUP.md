@@ -14,11 +14,11 @@ bundle: "Published on the portfolio site with its SHA-256 checksum"
 
 # Active Directory: Assess, Harden and Validate
 
-> **TL;DR** — Reference design for a defensive Active Directory engagement at a fictional 40-person company:
+> **TL;DR** — Design for a defensive Active Directory engagement at a fictional 40-person company:
 > eleven typical small-business weaknesses, an assessment plan with PingCastle, BloodHound CE and Microsoft's
 > security baseline, hardening delivered as idempotent PowerShell that refuses to run outside the lab domain,
 > and tooling that turns the before/after scans into a findings register and a professional report.
-> **Deliverable: reference design, ready to build.**
+> **Deliverable: plan, scripts and tooling, ready to build; lab results not yet measured.**
 
 | | |
 |---|---|
