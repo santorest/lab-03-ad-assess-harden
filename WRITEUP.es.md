@@ -1,10 +1,10 @@
 # Active Directory: evaluar, endurecer y validar
 
-> **Resumen** — Diseño de referencia de un trabajo defensivo sobre Active Directory en una empresa ficticia de 40
+> **Resumen** — Diseño de un trabajo defensivo sobre Active Directory en una empresa ficticia de 40
 > personas: once debilidades típicas de pequeñas empresas, un plan de evaluación con PingCastle, BloodHound CE y
 > la línea base de seguridad de Microsoft, endurecimiento entregado como PowerShell idempotente que se niega a
 > ejecutarse fuera del dominio del laboratorio, y herramientas que convierten los escaneos de antes y después en
-> un registro de hallazgos y un informe profesional. **Entregable: diseño de referencia, listo para construir.**
+> un registro de hallazgos y un informe profesional. **Entregable: plan, scripts y herramientas, listos para construir; resultados del laboratorio aún sin medir.**
 
 ![Diagrama de arquitectura](diagrams/architecture.svg)
 
