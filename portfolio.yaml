@@ -1,7 +1,6 @@
 # Metadata used by the portfolio site's `import_lab` command (site repo). Not needed to run the lab.
 slug: ad-assess-harden
 category: vulnerability-pentesting
-repo_url: https://github.com/santorest/lab-03-ad-assess-harden
 status: design               # design | in_progress | complete
 difficulty: advanced         # beginner | intermediate | advanced
 featured: true

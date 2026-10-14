@@ -124,7 +124,7 @@ del puntaje y ampliar con el endurecimiento de Active Directory Certificate Serv
 
 ## 7. Reprodúcelo tú mismo
 
-- Clonar: `git clone https://github.com/santorest/lab-03-ad-assess-harden.git`
+- Explorar el código: [en este sitio](./), archivo por archivo.
 - Descargar el paquete: desde el sitio del portafolio (el SHA-256 aparece junto a la descarga).
 - Tiempo estimado: 2–3 días, incluidas ambas evaluaciones.
 - Limpieza: volver al snapshot de línea base limpia o eliminar las VM.
