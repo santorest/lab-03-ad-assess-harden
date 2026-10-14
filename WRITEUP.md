@@ -8,7 +8,6 @@ date: "2026-09-29"
 time_to_reproduce: "2–3 days"
 skills: [Active Directory, PingCastle, BloodHound CE, PowerShell, Pester, Windows LAPS, Python]
 frameworks: [CIS Controls v8, NIST CSF 2.0]
-repo: "https://github.com/santorest/lab-03-ad-assess-harden"
 bundle: "Published on the portfolio site with its SHA-256 checksum"
 ---
 
@@ -146,7 +145,7 @@ with Active Directory Certificate Services hardening.
 
 ## 7. Reproduce it yourself
 
-- Clone: `git clone https://github.com/santorest/lab-03-ad-assess-harden.git`
+- Browse the source: [on this site](./), file by file.
 - Download bundle: from the portfolio site (SHA-256 shown next to the download).
 - Estimated time: 2–3 days, including both assessments.
 - Teardown: revert to the clean-baseline snapshot or delete the VMs.
